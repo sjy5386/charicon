@@ -10,6 +10,8 @@ function App() {
 
     useEffect(() => {
         const canvas = canvasRef.current;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         const ctx = canvas.getContext('2d');
 
         // 배경 채우기
