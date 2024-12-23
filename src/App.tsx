@@ -17,9 +17,9 @@ function App() {
         ctx.fillRect(0, 0, 100, 100);
 
         // 글자 쓰기
-        ctx.font = "100px 궁서체";
+        ctx.font = "90px ChosunGs";
         ctx.fillStyle = color;
-        ctx.fillText(character, 0, 80);
+        ctx.fillText(character, 8, 80);
     })
 
     return (
