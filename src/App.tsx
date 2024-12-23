@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import {useEffect, useRef, useState} from 'react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+    const canvasRef = useRef(null)
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const [character, setCharacter] = useState('글')
+    const [backgroundColor, setBackgroundColor] = useState('black')
+    const [color, setColor] = useState('white')
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        // 배경 채우기
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, 100, 100);
+
+        // 글자 쓰기
+        ctx.font = "100px 궁서체";
+        ctx.fillStyle = color;
+        ctx.fillText(character, 0, 80);
+    })
+
+    return (
+        <>
+            <div>
+                <canvas ref={canvasRef} width="100" height="100"></canvas>
+            </div>
+            <h1>글자티콘 생성기</h1>
+            <div className="card">
+                <label>글자</label>
+                <input type="text" maxLength={1} value={character} onChange={(e) => setCharacter(e.target.value)}/>
+                <label>배경색</label>
+                <input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)}/>
+                <label>글자색</label>
+                <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
+            </div>
+        </>
+    )
 }
 
 export default App
