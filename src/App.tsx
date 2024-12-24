@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import './App.css'
+import {downloadCanvas} from './charicon.ts'
 
 function App() {
     const canvasRef = useRef(null)
@@ -52,6 +53,7 @@ function App() {
                     <input type="range" value={y} onChange={(e) => setY(Number(e.target.value))}
                            max={size * 2} min={-size / 2} id="y-range-input"/>
                 </div>
+                <button onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>다운로드</button>
             </div>
         </>
     )
