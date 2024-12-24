@@ -26,3 +26,12 @@ input[type='text'] {
   width: 1.5em;
   text-align: center;
 }
+
+#x-range-input {
+  width: 100px;
+}
+
+#y-range-input {
+  writing-mode: vertical-lr;
+  height: 100px;
+}
