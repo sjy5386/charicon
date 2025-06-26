@@ -13,6 +13,7 @@ function App() {
     const [color, setColor] = useState('white')
 
     const [font, setFont] = useState('ChosunGs')
+    const [fontSize, setFontSize] = useState(90)
     const [x, setX] = useState(8)
     const [y, setY] = useState(80)
 
@@ -27,7 +28,7 @@ function App() {
         ctx.fillRect(0, 0, 100, 100);
 
         // 글자 쓰기
-        ctx.font = `90px ${font}`;
+        ctx.font = `${fontSize}px ${font}`;
         ctx.fillStyle = color;
         ctx.fillText(character, x, y);
     })
@@ -56,6 +57,9 @@ function App() {
                             </option>
                         ))}
                     </select>
+                    <label>크기</label>
+                    <input type="number" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))}
+                           min={0} max={size}/>
                     <label>X</label>
                     <input type="range" value={x} onChange={(e) => setX(Number(e.target.value))}
                            max={size} min={-size} id="x-range-input"/>
