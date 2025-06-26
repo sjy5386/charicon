@@ -6,7 +6,7 @@ function App() {
     const canvasRef = useRef(null)
 
     const size = 100
-    const fonts = ['ChosunGs'];
+    const fonts = ['ChosunGs', 'Gungsuhche', '궁서체'];
 
     const [character, setCharacter] = useState('글')
     const [backgroundColor, setBackgroundColor] = useState('black')
