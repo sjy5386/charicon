@@ -6,11 +6,13 @@ function App() {
     const canvasRef = useRef(null)
 
     const size = 100
+    const fonts = ['ChosunGs'];
 
     const [character, setCharacter] = useState('글')
     const [backgroundColor, setBackgroundColor] = useState('black')
     const [color, setColor] = useState('white')
 
+    const [font, setFont] = useState('ChosunGs')
     const [x, setX] = useState(8)
     const [y, setY] = useState(80)
 
@@ -25,7 +27,7 @@ function App() {
         ctx.fillRect(0, 0, 100, 100);
 
         // 글자 쓰기
-        ctx.font = `90px ChosunGs`;
+        ctx.font = `90px ${font}`;
         ctx.fillStyle = color;
         ctx.fillText(character, x, y);
     })
@@ -46,6 +48,14 @@ function App() {
                     <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
                 </div>
                 <div>
+                    <label>글꼴</label>
+                    <select value={font} onChange={(e) => setFont(e.target.value)}>
+                        {fonts.map((font, index) => (
+                            <option key={index} value={font}>
+                                {font}
+                            </option>
+                        ))}
+                    </select>
                     <label>X</label>
                     <input type="range" value={x} onChange={(e) => setX(Number(e.target.value))}
                            max={size} min={-size} id="x-range-input"/>
