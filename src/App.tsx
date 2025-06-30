@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import './App.css'
-import {downloadCanvas} from './charicon.ts'
+import {randomColor, downloadCanvas} from './charicon.ts'
 
 function App() {
     const canvasRef = useRef(null)
@@ -9,7 +9,7 @@ function App() {
     const fonts = ['ChosunGs', 'Gungsuhche', '궁서체'];
 
     const [character, setCharacter] = useState('글')
-    const [backgroundColor, setBackgroundColor] = useState('black')
+    const [backgroundColor, setBackgroundColor] = useState(randomColor())
     const [color, setColor] = useState('white')
 
     const [font, setFont] = useState('ChosunGs')
