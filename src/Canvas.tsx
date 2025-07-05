@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {useEffect} from 'react'
-import './App.css'
+import './fonts.css'
 
 export interface CanvasProps {
     canvasRef: React.MutableRefObject<HTMLCanvasElement | null>
