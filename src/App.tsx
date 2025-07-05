@@ -1,6 +1,7 @@
-import {useEffect, useRef, useState} from 'react'
+import {useRef, useState} from 'react'
 import './App.css'
-import {randomColor, downloadCanvas} from './charicon.ts'
+import {downloadCanvas, randomColor} from './charicon.ts'
+import Canvas from "./Canvas.tsx";
 
 function App() {
     const canvasRef = useRef(null)
@@ -17,26 +18,12 @@ function App() {
     const [x, setX] = useState(8)
     const [y, setY] = useState(80)
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        const ctx = canvas.getContext('2d');
-
-        // 배경 채우기
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, 100, 100);
-
-        // 글자 쓰기
-        ctx.font = `${fontSize}px ${font}`;
-        ctx.fillStyle = color;
-        ctx.fillText(character, x, y);
-    })
-
     return (
         <>
             <div>
-                <canvas ref={canvasRef} width={size} height={size}></canvas>
+                <Canvas canvasRef={canvasRef} width={size} height={size}
+                        character={character} backgroundColor={backgroundColor} color={color}
+                        font={font} fontSize={fontSize} x={x} y={y}></Canvas>
             </div>
             <h1>글자티콘 생성기</h1>
             <div className="card">
