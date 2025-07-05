@@ -42,9 +42,11 @@ const Canvas = ({
         ctx.fillRect(0, 0, 100, 100);
 
         // 글자 쓰기
-        ctx.font = `${fontSize}px ${font}`;
-        ctx.fillStyle = color;
-        ctx.fillText(character, x, y);
+        document.fonts.load(`${fontSize}px ${font}`).then(() => {
+            ctx.font = `${fontSize}px ${font}`;
+            ctx.fillStyle = color;
+            ctx.fillText(character, x, y);
+        });
     })
 
     return (
