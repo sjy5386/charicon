@@ -21,12 +21,6 @@ npm run dev
 npm run build
 ```
 
-## 배포
-
-```shell
-npm run deploy
-```
-
 ## 포함된 글꼴
 
 - [조선궁서체](https://event.chosun.com/100/100font.html)
