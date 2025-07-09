@@ -2,6 +2,7 @@ import {useRef, useState} from 'react'
 import './App.css'
 import {downloadCanvas, randomColor} from './charicon.ts'
 import Canvas from "./Canvas.tsx";
+import Toolbar from "./Toolbar.tsx";
 
 function App() {
     const canvasRef = useRef(null)
@@ -20,6 +21,10 @@ function App() {
 
     return (
         <>
+            <header>
+                <Toolbar font={font} setFont={setFont} fontSize={fontSize} setFontSize={setFontSize}
+                         fonts={fonts}></Toolbar>
+            </header>
             <div>
                 <Canvas canvasRef={canvasRef} width={size} height={size}
                         character={character} backgroundColor={backgroundColor} color={color}
@@ -36,17 +41,6 @@ function App() {
                     <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
                 </div>
                 <div>
-                    <label>글꼴</label>
-                    <select value={font} onChange={(e) => setFont(e.target.value)}>
-                        {fonts.map((font, index) => (
-                            <option key={index} value={font}>
-                                {font}
-                            </option>
-                        ))}
-                    </select>
-                    <label>크기</label>
-                    <input type="number" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))}
-                           min={0} max={size}/>
                     <label>X</label>
                     <input type="range" value={x} onChange={(e) => setX(Number(e.target.value))}
                            max={size} min={-size} id="x-range-input"/>

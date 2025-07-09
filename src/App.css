@@ -5,6 +5,13 @@
   text-align: center;
 }
 
+header {
+  left: 0;
+  top: 0;
+  width: 100%;
+  position: fixed;
+}
+
 .card {
   padding: 2em;
 }
