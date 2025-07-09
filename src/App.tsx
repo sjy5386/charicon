@@ -26,9 +26,9 @@ function App() {
                          fonts={fonts}></Toolbar>
             </header>
             <div>
-                <Canvas canvasRef={canvasRef} width={size} height={size}
-                        character={character} backgroundColor={backgroundColor} color={color}
-                        font={font} fontSize={fontSize} x={x} y={y}></Canvas>
+                <Canvas canvasRef={canvasRef} width={size} height={size} character={character}
+                        backgroundColor={backgroundColor} color={color} font={font} fontSize={fontSize}
+                        x={x} setX={setX} y={y} setY={setY}></Canvas>
             </div>
             <h1>글자티콘 생성기</h1>
             <div className="card">

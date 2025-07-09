@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useEffect} from 'react'
+import {useEffect, useState} from 'react'
 import './fonts.css'
 
 export interface CanvasProps {
@@ -12,7 +12,9 @@ export interface CanvasProps {
     font: string;
     fontSize: number;
     x: number;
+    setX: React.Dispatch<React.SetStateAction<number>>;
     y: number;
+    setY: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const Canvas = ({
@@ -25,35 +27,53 @@ const Canvas = ({
                     font,
                     fontSize,
                     x,
+                    setX,
                     y,
-                }: CanvasProps) => {
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) {
-            throw new Error('Canvas not found');
-        }
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('Canvas context must be null');
-        }
+                    setY,
+                }:
+                CanvasProps
+    ) => {
+        const [dragging, setDragging] = useState(false);
+        const [dragStart, setDragStart] = useState({x: 0, y: 0});
 
-        // 배경 채우기
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, 100, 100);
+        useEffect(() => {
+            const canvas = canvasRef.current;
+            if (!canvas) {
+                throw new Error('Canvas not found');
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Canvas context must be null');
+            }
 
-        // 글자 쓰기
-        document.fonts.load(`${fontSize}px ${font}`).then(() => {
-            ctx.font = `${fontSize}px ${font}`;
-            ctx.fillStyle = color;
-            ctx.fillText(character, x, y);
-        });
-    })
+            // 배경 채우기
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, 100, 100);
 
-    return (
-        <>
-            <canvas ref={canvasRef} width={width} height={height}></canvas>
-        </>
-    );
-};
+            // 글자 쓰기
+            document.fonts.load(`${fontSize}px ${font}`).then(() => {
+                ctx.font = `${fontSize}px ${font}`;
+                ctx.fillStyle = color;
+                ctx.fillText(character, x, y);
+            });
+        })
+
+        return (
+            <>
+                <canvas ref={canvasRef} width={width} height={height} onMouseDown={e => {
+                    setDragging(true);
+                    setDragStart({x: e.nativeEvent.offsetX - x, y: e.nativeEvent.offsetY - y});
+                }} onMouseMove={e => {
+                    if (!dragging) {
+                        return;
+                    }
+                    setX(e.nativeEvent.offsetX - dragStart.x);
+                    setY(e.nativeEvent.offsetY - dragStart.y);
+                }} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)}
+                        style={{'cursor': 'grab'}}></canvas>
+            </>
+        );
+    }
+;
 
 export default Canvas;
