@@ -61,12 +61,14 @@ const Canvas = ({
         return (
             <>
                 <canvas ref={canvasRef} width={width} height={height} onMouseDown={e => {
+                    e.preventDefault();
                     setDragging(true);
                     setDragStart({x: e.nativeEvent.offsetX - x, y: e.nativeEvent.offsetY - y});
                 }} onMouseMove={e => {
                     if (!dragging) {
                         return;
                     }
+                    e.preventDefault();
                     setX(e.nativeEvent.offsetX - dragStart.x);
                     setY(e.nativeEvent.offsetY - dragStart.y);
                 }} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)} onTouchStart={e => {
