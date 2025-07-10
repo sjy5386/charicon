@@ -40,14 +40,7 @@ function App() {
                     <label>글자색</label>
                     <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
                 </div>
-                <div>
-                    <label>X</label>
-                    <input type="range" value={x} onChange={(e) => setX(Number(e.target.value))}
-                           max={size} min={-size} id="x-range-input"/>
-                    <label>Y</label>
-                    <input type="range" value={y} onChange={(e) => setY(Number(e.target.value))}
-                           max={size * 2} min={-size / 2} id="y-range-input"/>
-                </div>
+                <div style={{'margin': '1em'}}></div>
                 <button onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>다운로드</button>
             </div>
         </>
