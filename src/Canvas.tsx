@@ -69,7 +69,16 @@ const Canvas = ({
                     }
                     setX(e.nativeEvent.offsetX - dragStart.x);
                     setY(e.nativeEvent.offsetY - dragStart.y);
-                }} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)}
+                }} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)} onTouchStart={e => {
+                    setDragging(true);
+                    setDragStart({x: e.touches[0].clientX - x, y: e.touches[0].clientY - y});
+                }} onTouchMove={e => {
+                    if (!dragging) {
+                        return;
+                    }
+                    setX(e.nativeEvent.touches[0].clientX - dragStart.x);
+                    setY(e.nativeEvent.touches[0].clientY - dragStart.y);
+                }} onTouchEnd={() => setDragging(false)}
                         style={{'cursor': 'grab'}}></canvas>
             </>
         );
