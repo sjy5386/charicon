@@ -11,6 +11,7 @@ export interface CanvasProps {
     color: string;
     font: string;
     fontSize: number;
+    setFontSize: React.Dispatch<React.SetStateAction<number>>;
     x: number;
     setX: React.Dispatch<React.SetStateAction<number>>;
     y: number;
@@ -26,6 +27,7 @@ const Canvas = ({
                     color,
                     font,
                     fontSize,
+                    setFontSize,
                     x,
                     setX,
                     y,
@@ -82,7 +84,12 @@ const Canvas = ({
                     e.preventDefault();
                     setX(e.nativeEvent.touches[0].clientX - dragStart.x);
                     setY(e.nativeEvent.touches[0].clientY - dragStart.y);
-                }} onTouchEnd={() => setDragging(false)}
+                }} onTouchEnd={() => setDragging(false)} onWheel={e => {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        setFontSize(prevState => Math.max(0, Math.min(prevState + e.deltaY * -0.1, 200)));
+                    }
+                }}
                         style={{'cursor': 'grab'}}></canvas>
             </>
         );

@@ -27,7 +27,8 @@ function App() {
             </header>
             <div>
                 <Canvas canvasRef={canvasRef} width={size} height={size} character={character}
-                        backgroundColor={backgroundColor} color={color} font={font} fontSize={fontSize}
+                        backgroundColor={backgroundColor} color={color}
+                        font={font} fontSize={fontSize} setFontSize={setFontSize}
                         x={x} setX={setX} y={y} setY={setY}></Canvas>
             </div>
             <h1>글자티콘 생성기</h1>
