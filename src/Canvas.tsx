@@ -56,6 +56,7 @@ const Canvas = ({
             document.fonts.load(`${fontSize}px ${font}`).then(() => {
                 ctx.font = `${fontSize}px ${font}`;
                 ctx.fillStyle = color;
+                ctx.textBaseline = 'alphabetic'; // 베이스라인 명시
                 ctx.fillText(character, x, y);
             });
         })

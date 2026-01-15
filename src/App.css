@@ -1,37 +1,138 @@
 #root {
-  max-width: 1280px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
 }
 
-header {
-  left: 0;
-  top: 0;
-  width: 100%;
-  position: fixed;
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.header-container {
+  margin-bottom: 2rem;
+  background: var(--header-bg);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px var(--shadow-color);
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.canvas-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem 0;
+}
+
+canvas {
+  box-shadow: 0 10px 30px var(--shadow-color);
+  border-radius: 8px;
+  background-color: white; /* 캔버스 자체 배경은 항상 흰색(혹은 투명)을 유지하는 것이 좋을 수 있음 */
+}
+
+h1 {
+  font-size: 2rem;
+  color: var(--title-color);
+  margin-bottom: 1.5rem;
 }
 
 .card {
-  padding: 2em;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px var(--card-shadow);
+}
+
+.input-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.input-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 label {
-  font-size: 1.5em;
-  margin: 0.5em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--label-color);
+  margin: 0;
 }
 
 input[type='text'] {
-  font-size: 2em;
-  width: 1.5em;
+  font-size: 1.5rem;
+  width: 3rem;
+  height: 3rem;
   text-align: center;
+  border: 2px solid var(--input-border);
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-radius: 8px;
+  transition: border-color 0.2s;
 }
 
-#x-range-input {
-  width: 100px;
+input[type='text']:focus {
+  outline: none;
+  border-color: #646cff;
 }
 
-#y-range-input {
-  writing-mode: vertical-lr;
-  height: 100px;
+input[type='color'] {
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+select, input[type='number'] {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+button {
+  background-color: #646cff;
+  color: white;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+button:hover {
+  background-color: #535bf2;
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
 }

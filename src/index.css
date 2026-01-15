@@ -4,8 +4,21 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+
+  /* Dark theme colors (default) */
+  --bg-color: #1a1a1a;
+  --text-color: rgba(255, 255, 255, 0.87);
+  --card-bg: #242424;
+  --header-bg: #242424;
+  --border-color: #444;
+  --input-border: #333;
+  --label-color: #aaa;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --card-shadow: rgba(0, 0, 0, 0.5);
+  --title-color: #ffffff;
+
+  color: var(--text-color);
+  background-color: var(--bg-color);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +38,8 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -56,8 +70,16 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --bg-color: #f8f9fa;
+    --text-color: #333;
+    --card-bg: #ffffff;
+    --header-bg: #ffffff;
+    --border-color: #ddd;
+    --input-border: #eee;
+    --label-color: #666;
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    --card-shadow: rgba(0, 0, 0, 0.08);
+    --title-color: #222;
   }
   a:hover {
     color: #747bff;
