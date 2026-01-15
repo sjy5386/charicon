@@ -52,7 +52,13 @@ function App() {
                             <label>배경색</label>
                             <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
                                 <input type="checkbox" checked={bgIsGradient}
-                                       onChange={(e) => setBgIsGradient(e.target.checked)}/>
+                                       onChange={(e) => {
+                                           const checked = e.target.checked;
+                                           setBgIsGradient(checked);
+                                           if (checked) {
+                                               setBgGradient(prev => ({...prev, start: backgroundColor}));
+                                           }
+                                       }}/>
                                 <span style={{fontSize: '12px'}}>그라데이션</span>
                             </div>
                             {bgIsGradient ? (
@@ -71,7 +77,13 @@ function App() {
                             <label>글자색</label>
                             <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
                                 <input type="checkbox" checked={colorIsGradient}
-                                       onChange={(e) => setColorIsGradient(e.target.checked)}/>
+                                       onChange={(e) => {
+                                           const checked = e.target.checked;
+                                           setColorIsGradient(checked);
+                                           if (checked) {
+                                               setColorGradient(prev => ({...prev, start: color}));
+                                           }
+                                       }}/>
                                 <span style={{fontSize: '12px'}}>그라데이션</span>
                             </div>
                             {colorIsGradient ? (
