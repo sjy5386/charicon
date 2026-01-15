@@ -41,51 +41,58 @@ function App() {
             <h1>글자티콘 생성기</h1>
 
             <div className="card">
-                <div className="input-group">
-                    <div className="input-item">
+                <div className="input-group-vertical">
+                    <div className="input-item main-input">
                         <label>글자</label>
                         <input type="text" maxLength={1} value={character}
                                onChange={(e) => setCharacter(e.target.value)}/>
                     </div>
-                    <div className="input-item">
-                        <label>배경색</label>
-                        <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                            <input type="checkbox" checked={bgIsGradient}
-                                   onChange={(e) => setBgIsGradient(e.target.checked)}/>
-                            <span style={{fontSize: '12px'}}>그라데이션</span>
-                        </div>
-                        {bgIsGradient ? (
-                            <div style={{display: 'flex', gap: '4px'}}>
-                                <input type="color" value={bgGradient.start}
-                                       onChange={(e) => setBgGradient({...bgGradient, start: e.target.value})}/>
-                                <input type="color" value={bgGradient.end}
-                                       onChange={(e) => setBgGradient({...bgGradient, end: e.target.value})}/>
+                    <div className="input-row">
+                        <div className="input-item">
+                            <label>배경색</label>
+                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                                <input type="checkbox" checked={bgIsGradient}
+                                       onChange={(e) => setBgIsGradient(e.target.checked)}/>
+                                <span style={{fontSize: '12px'}}>그라데이션</span>
                             </div>
-                        ) : (
-                            <input type="color" value={backgroundColor}
-                                   onChange={(e) => setBackgroundColor(e.target.value)}/>
-                        )}
-                    </div>
-                    <div className="input-item">
-                        <label>글자색</label>
-                        <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                            <input type="checkbox" checked={colorIsGradient}
-                                   onChange={(e) => setColorIsGradient(e.target.checked)}/>
-                            <span style={{fontSize: '12px'}}>그라데이션</span>
+                            {bgIsGradient ? (
+                                <div style={{display: 'flex', gap: '4px'}}>
+                                    <input type="color" value={bgGradient.start}
+                                           onChange={(e) => setBgGradient({...bgGradient, start: e.target.value})}/>
+                                    <input type="color" value={bgGradient.end}
+                                           onChange={(e) => setBgGradient({...bgGradient, end: e.target.value})}/>
+                                </div>
+                            ) : (
+                                <input type="color" value={backgroundColor}
+                                       onChange={(e) => setBackgroundColor(e.target.value)}/>
+                            )}
                         </div>
-                        {colorIsGradient ? (
-                            <div style={{display: 'flex', gap: '4px'}}>
-                                <input type="color" value={colorGradient.start}
-                                       onChange={(e) => setColorGradient({...colorGradient, start: e.target.value})}/>
-                                <input type="color" value={colorGradient.end}
-                                       onChange={(e) => setColorGradient({...colorGradient, end: e.target.value})}/>
+                        <div className="input-item">
+                            <label>글자색</label>
+                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                                <input type="checkbox" checked={colorIsGradient}
+                                       onChange={(e) => setColorIsGradient(e.target.checked)}/>
+                                <span style={{fontSize: '12px'}}>그라데이션</span>
                             </div>
-                        ) : (
-                            <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
-                        )}
+                            {colorIsGradient ? (
+                                <div style={{display: 'flex', gap: '4px'}}>
+                                    <input type="color" value={colorGradient.start}
+                                           onChange={(e) => setColorGradient({
+                                               ...colorGradient,
+                                               start: e.target.value
+                                           })}/>
+                                    <input type="color" value={colorGradient.end}
+                                           onChange={(e) => setColorGradient({...colorGradient, end: e.target.value})}/>
+                                </div>
+                            ) : (
+                                <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <button onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>이미지 다운로드</button>
+                <button style={{marginTop: '1.2rem'}}
+                        onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>이미지 다운로드
+                </button>
             </div>
         </div>
     )
