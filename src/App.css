@@ -60,7 +60,7 @@ h1 {
 .input-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
 }
 

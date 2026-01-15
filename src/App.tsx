@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react'
 import './App.css'
 import {downloadCanvas, randomColor} from './charicon.ts'
-import Canvas from "./Canvas.tsx";
+import Canvas, {Gradient} from "./Canvas.tsx";
 import Toolbar from "./Toolbar.tsx";
 
 function App() {
@@ -11,8 +11,14 @@ function App() {
     const fonts = ['ChosunGs', 'Gungsuhche', '궁서체'];
 
     const [character, setCharacter] = useState('글')
+
+    const [bgIsGradient, setBgIsGradient] = useState(false)
     const [backgroundColor, setBackgroundColor] = useState(randomColor())
+    const [bgGradient, setBgGradient] = useState<Gradient>({start: '#ffffff', end: '#000000'})
+
+    const [colorIsGradient, setColorIsGradient] = useState(false)
     const [color, setColor] = useState('white')
+    const [colorGradient, setColorGradient] = useState<Gradient>({start: '#ffffff', end: '#000000'})
 
     const [font, setFont] = useState('ChosunGs')
     const [fontSize, setFontSize] = useState(90)
@@ -26,7 +32,8 @@ function App() {
 
             <div className="canvas-container">
                 <Canvas canvasRef={canvasRef} width={size} height={size} character={character}
-                        backgroundColor={backgroundColor} color={color}
+                        backgroundColor={bgIsGradient ? bgGradient : backgroundColor}
+                        color={colorIsGradient ? colorGradient : color}
                         font={font} fontSize={fontSize} setFontSize={setFontSize}
                         x={x} setX={setX} y={y} setY={setY}></Canvas>
             </div>
@@ -42,12 +49,40 @@ function App() {
                     </div>
                     <div className="input-item">
                         <label>배경색</label>
-                        <input type="color" value={backgroundColor}
-                               onChange={(e) => setBackgroundColor(e.target.value)}/>
+                        <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                            <input type="checkbox" checked={bgIsGradient}
+                                   onChange={(e) => setBgIsGradient(e.target.checked)}/>
+                            <span style={{fontSize: '12px'}}>그라데이션</span>
+                        </div>
+                        {bgIsGradient ? (
+                            <div style={{display: 'flex', gap: '4px'}}>
+                                <input type="color" value={bgGradient.start}
+                                       onChange={(e) => setBgGradient({...bgGradient, start: e.target.value})}/>
+                                <input type="color" value={bgGradient.end}
+                                       onChange={(e) => setBgGradient({...bgGradient, end: e.target.value})}/>
+                            </div>
+                        ) : (
+                            <input type="color" value={backgroundColor}
+                                   onChange={(e) => setBackgroundColor(e.target.value)}/>
+                        )}
                     </div>
                     <div className="input-item">
                         <label>글자색</label>
-                        <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
+                        <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                            <input type="checkbox" checked={colorIsGradient}
+                                   onChange={(e) => setColorIsGradient(e.target.checked)}/>
+                            <span style={{fontSize: '12px'}}>그라데이션</span>
+                        </div>
+                        {colorIsGradient ? (
+                            <div style={{display: 'flex', gap: '4px'}}>
+                                <input type="color" value={colorGradient.start}
+                                       onChange={(e) => setColorGradient({...colorGradient, start: e.target.value})}/>
+                                <input type="color" value={colorGradient.end}
+                                       onChange={(e) => setColorGradient({...colorGradient, end: e.target.value})}/>
+                            </div>
+                        ) : (
+                            <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
+                        )}
                     </div>
                 </div>
                 <button onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>이미지 다운로드</button>

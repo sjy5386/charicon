@@ -2,13 +2,18 @@ import * as React from 'react'
 import {useEffect, useState} from 'react'
 import './fonts.css'
 
+export interface Gradient {
+    start: string;
+    end: string;
+}
+
 export interface CanvasProps {
     canvasRef: React.MutableRefObject<HTMLCanvasElement | null>
     width: number;
     height: number;
     character: string;
-    backgroundColor: string;
-    color: string;
+    backgroundColor: string | Gradient;
+    color: string | Gradient;
     font: string;
     fontSize: number;
     setFontSize: React.Dispatch<React.SetStateAction<number>>;
@@ -48,14 +53,24 @@ const Canvas = ({
                 throw new Error('Canvas context must be null');
             }
 
+            const getFillStyle = (fill: string | Gradient, w: number, h: number) => {
+                if (typeof fill === 'string') {
+                    return fill;
+                }
+                const gradient = ctx.createLinearGradient(0, 0, w, h);
+                gradient.addColorStop(0, fill.start);
+                gradient.addColorStop(1, fill.end);
+                return gradient;
+            };
+
             // 배경 채우기
-            ctx.fillStyle = backgroundColor;
-            ctx.fillRect(0, 0, 100, 100);
+            ctx.fillStyle = getFillStyle(backgroundColor, width, height);
+            ctx.fillRect(0, 0, width, height);
 
             // 글자 쓰기
             document.fonts.load(`${fontSize}px ${font}`).then(() => {
                 ctx.font = `${fontSize}px ${font}`;
-                ctx.fillStyle = color;
+                ctx.fillStyle = getFillStyle(color, width, height);
                 ctx.textBaseline = 'alphabetic'; // 베이스라인 명시
                 ctx.fillText(character, x, y);
             });
