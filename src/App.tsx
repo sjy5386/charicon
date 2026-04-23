@@ -1,14 +1,13 @@
-import {useRef, useState} from 'react'
+import {useState} from 'react'
 import './App.css'
-import {downloadCanvas, hangulToQwerty, randomColor} from './charicon.ts'
-import Canvas, {Gradient} from "./Canvas.tsx";
-import Toolbar from "./Toolbar.tsx";
+import {randomColor} from './charicon.ts'
+import {Gradient} from "./Canvas.tsx";
+import CharIconGenerator from "./CharIconGenerator.tsx";
+import SlackEmojiConverter from "./SlackEmojiConverter.tsx";
 
 function App() {
-    const canvasRef = useRef(null)
-
-    const size = 100
-    const fonts = ['ChosunGs', 'Gungsuhche', '궁서체'];
+    const [activeTab, setActiveTab] = useState<'generator' | 'converter'>('generator')
+    const [converterText, setConverterText] = useState('')
 
     const [character, setCharacter] = useState('글')
 
@@ -27,85 +26,33 @@ function App() {
 
     return (
         <div className="container">
-            <Toolbar font={font} setFont={setFont} fontSize={fontSize} setFontSize={setFontSize}
-                     fonts={fonts}></Toolbar>
-
-            <div className="canvas-container">
-                <Canvas canvasRef={canvasRef} width={size} height={size} character={character}
-                        backgroundColor={bgIsGradient ? bgGradient : backgroundColor}
-                        color={colorIsGradient ? colorGradient : color}
-                        font={font} fontSize={fontSize} setFontSize={setFontSize}
-                        x={x} setX={setX} y={y} setY={setY}></Canvas>
-            </div>
-
-            <h1>글자티콘 생성기</h1>
-
-            <div className="card">
-                <div className="input-group-vertical">
-                    <div className="input-item main-input">
-                        <label>글자</label>
-                        <input type="text" maxLength={1} value={character}
-                               onChange={(e) => setCharacter(e.target.value)}/>
-                    </div>
-                    <div className="input-row">
-                        <div className="input-item">
-                            <label>배경색</label>
-                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                                <input type="checkbox" checked={bgIsGradient}
-                                       onChange={(e) => {
-                                           const checked = e.target.checked;
-                                           setBgIsGradient(checked);
-                                           if (checked) {
-                                               setBgGradient(prev => ({...prev, start: backgroundColor}));
-                                           }
-                                       }}/>
-                                <span style={{fontSize: '12px'}}>그라데이션</span>
-                            </div>
-                            {bgIsGradient ? (
-                                <div style={{display: 'flex', gap: '4px'}}>
-                                    <input type="color" value={bgGradient.start}
-                                           onChange={(e) => setBgGradient({...bgGradient, start: e.target.value})}/>
-                                    <input type="color" value={bgGradient.end}
-                                           onChange={(e) => setBgGradient({...bgGradient, end: e.target.value})}/>
-                                </div>
-                            ) : (
-                                <input type="color" value={backgroundColor}
-                                       onChange={(e) => setBackgroundColor(e.target.value)}/>
-                            )}
-                        </div>
-                        <div className="input-item">
-                            <label>글자색</label>
-                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                                <input type="checkbox" checked={colorIsGradient}
-                                       onChange={(e) => {
-                                           const checked = e.target.checked;
-                                           setColorIsGradient(checked);
-                                           if (checked) {
-                                               setColorGradient(prev => ({...prev, start: color}));
-                                           }
-                                       }}/>
-                                <span style={{fontSize: '12px'}}>그라데이션</span>
-                            </div>
-                            {colorIsGradient ? (
-                                <div style={{display: 'flex', gap: '4px'}}>
-                                    <input type="color" value={colorGradient.start}
-                                           onChange={(e) => setColorGradient({
-                                               ...colorGradient,
-                                               start: e.target.value
-                                           })}/>
-                                    <input type="color" value={colorGradient.end}
-                                           onChange={(e) => setColorGradient({...colorGradient, end: e.target.value})}/>
-                                </div>
-                            ) : (
-                                <input type="color" value={color} onChange={(e) => setColor(e.target.value)}/>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <button style={{marginTop: '1.2rem'}}
-                        onClick={() => downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')}>이미지 다운로드
+            <div className="tab-bar">
+                <button className={`tab ${activeTab === 'generator' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('generator')}>생성기
+                </button>
+                <button className={`tab ${activeTab === 'converter' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('converter')}>변환기
                 </button>
             </div>
+
+            {activeTab === 'generator' && (
+                <CharIconGenerator
+                    character={character} setCharacter={setCharacter}
+                    bgIsGradient={bgIsGradient} setBgIsGradient={setBgIsGradient}
+                    backgroundColor={backgroundColor} setBackgroundColor={setBackgroundColor}
+                    bgGradient={bgGradient} setBgGradient={setBgGradient}
+                    colorIsGradient={colorIsGradient} setColorIsGradient={setColorIsGradient}
+                    color={color} setColor={setColor}
+                    colorGradient={colorGradient} setColorGradient={setColorGradient}
+                    font={font} setFont={setFont}
+                    fontSize={fontSize} setFontSize={setFontSize}
+                    x={x} setX={setX} y={y} setY={setY}
+                />
+            )}
+
+            {activeTab === 'converter' && (
+                <SlackEmojiConverter text={converterText} setText={setConverterText}/>
+            )}
         </div>
     )
 }
