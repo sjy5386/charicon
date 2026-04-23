@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react'
 import './App.css'
-import {downloadCanvas, randomColor} from './charicon.ts'
+import {downloadCanvas, hangulToQwerty, randomColor} from './charicon.ts'
 import Canvas, {Gradient} from "./Canvas.tsx";
 import Toolbar from "./Toolbar.tsx";
 
@@ -103,7 +103,7 @@ function App() {
                     </div>
                 </div>
                 <button style={{marginTop: '1.2rem'}}
-                        onClick={() => downloadCanvas(canvasRef.current, character + '.png')}>이미지 다운로드
+                        onClick={() => downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')}>이미지 다운로드
                 </button>
             </div>
         </div>
