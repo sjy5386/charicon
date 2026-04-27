@@ -1,5 +1,16 @@
 export const randomColor = () => `rgb(${Math.floor(Math.random() * 128)}, ${Math.floor(Math.random() * 128)}, ${Math.floor(Math.random() * 128)})`
 
+const charColorCache = new Map<string, string>()
+
+export const colorForChar = (ch: string): string => {
+    let color = charColorCache.get(ch)
+    if (!color) {
+        color = randomColor()
+        charColorCache.set(ch, color)
+    }
+    return color
+}
+
 export const downloadCanvas = (canvas: HTMLCanvasElement | null, filename: string) => {
     if (canvas) {
         const dataURL = canvas.toDataURL('image/png');

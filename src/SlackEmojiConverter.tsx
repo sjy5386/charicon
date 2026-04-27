@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {useState} from 'react'
-import {hangulToSlackEmoji} from './charicon.ts'
+import {colorForChar, hangulToSlackEmoji} from './charicon.ts'
 
 export interface SlackEmojiConverterProps {
     text: string;
@@ -21,6 +21,24 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
 
     return (
         <>
+            <div className="slack-preview-container">
+                <div className="slack-preview">
+                    {Array.from(text).map((ch, i) => {
+                        const code = ch.charCodeAt(0)
+                        const isHangul = code >= 0xAC00 && code <= 0xD7A3
+                        if (!isHangul) {
+                            return <React.Fragment key={i}>{ch}</React.Fragment>
+                        }
+                        return (
+                            <span key={i} className="slack-preview-emoji"
+                                  style={{backgroundColor: colorForChar(ch)}}>
+                                {ch}
+                            </span>
+                        )
+                    })}
+                </div>
+            </div>
+
             <h1>글자티콘 변환기</h1>
             <div className="card">
                 <div className="input-group-vertical">
