@@ -92,6 +92,10 @@ button:disabled:hover {
   color: var(--text-color);
 }
 
+.slack-preview.is-placeholder {
+  opacity: 0.4;
+}
+
 .slack-preview-emoji {
   display: inline-flex;
   vertical-align: middle;

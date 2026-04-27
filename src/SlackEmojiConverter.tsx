@@ -22,8 +22,8 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
     return (
         <>
             <div className="slack-preview-container">
-                <div className="slack-preview">
-                    {Array.from(text).map((ch, i) => {
+                <div className={`slack-preview ${text ? '' : 'is-placeholder'}`}>
+                    {Array.from(text || '글자티콘').map((ch, i) => {
                         const code = ch.charCodeAt(0)
                         const isHangul = code >= 0xAC00 && code <= 0xD7A3
                         if (!isHangul) {
