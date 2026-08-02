@@ -23,6 +23,24 @@ export const downloadCanvas = (canvas: HTMLCanvasElement | null, filename: strin
     }
 }
 
+/** Update the browser tab favicon from a canvas (or data URL). */
+export const setFaviconFromCanvas = (canvas: HTMLCanvasElement | null) => {
+    if (!canvas) return
+    setFaviconFromDataUrl(canvas.toDataURL('image/png'))
+}
+
+export const setFaviconFromDataUrl = (dataUrl: string) => {
+    let link = document.querySelector<HTMLLinkElement>("link[rel*='icon']")
+    if (!link) {
+        link = document.createElement('link')
+        link.rel = 'icon'
+        document.head.appendChild(link)
+    }
+    link.type = 'image/png'
+    // Cache-bust so browsers that ignore same-href updates still refresh
+    link.href = dataUrl
+}
+
 const CHOSEONG = [
     'r', 'rr', 's', 'e', 'ee', 'f', 'a', 'q', 'qq', 't',
     'tt', 'd', 'w', 'ww', 'c', 'z', 'x', 'v', 'g',
