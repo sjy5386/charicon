@@ -13,12 +13,13 @@ const isHangul = (ch: string) => {
     return code >= 0xAC00 && code <= 0xD7A3
 }
 
-/** Hangul syllables become custom Slack emoji in this app. */
+/** Complete hangul syllables only (custom emoji source). Jamo like ㅇ do not count. */
 const HANGUL_SYLLABLE_RE = /[\uAC00-\uD7A3]/gu
 
 /**
- * Slack-like jumbo when the message is only emoji + whitespace.
- * Real unicode emoji via emoji-regex; hangul = our custom emoji source.
+ * Slack-like jumbo when only complete hangul syllables / unicode emoji + whitespace.
+ * Bare jamo (ㅇ, ㅋ, …) is not emoji-only → inline.
+ * IME mid-composition flicker is handled by freezing size while composing.
  */
 const isEmojiOnlyMessage = (text: string): boolean => {
     if (text.length === 0) return true // placeholder "글자티콘" is emoji-only
@@ -31,7 +32,6 @@ const isEmojiOnlyMessage = (text: string): boolean => {
 
     if (remainder.length > 0) return false
 
-    // At least one emoji or hangul (not whitespace-only)
     HANGUL_SYLLABLE_RE.lastIndex = 0
     return emojiRegex().test(text) || HANGUL_SYLLABLE_RE.test(text)
 }
@@ -81,10 +81,18 @@ const drawPreviewEmojiToCanvas = (
 
 const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
     const [copied, setCopied] = useState(false)
+    const [composing, setComposing] = useState(false)
+    const targetJumbo = isEmojiOnlyMessage(text)
+    const [jumbo, setJumbo] = useState(targetJumbo)
+
+    // Apply size from settled text; freeze while IME is composing (ㅇ→아).
+    useEffect(() => {
+        if (composing) return
+        setJumbo(targetJumbo)
+    }, [targetJumbo, composing])
 
     const result = hangulToSlackEmoji(text)
     const displayText = text || '글자티콘'
-    const jumbo = isEmojiOnlyMessage(text)
     const emojiMode = jumbo ? 'jumbo' : 'inline'
 
     useEffect(() => {
@@ -135,7 +143,10 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
                     <div className="converter-field">
                         <label>입력</label>
                         <textarea rows={3} placeholder="글자티콘"
-                                  value={text} onChange={(e) => setText(e.target.value)}/>
+                                  value={text}
+                                  onChange={(e) => setText(e.target.value)}
+                                  onCompositionStart={() => setComposing(true)}
+                                  onCompositionEnd={() => setComposing(false)}/>
                     </div>
                     <div className="converter-arrow">↓</div>
                     <div className="converter-field">
