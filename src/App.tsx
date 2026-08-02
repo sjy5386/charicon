@@ -22,6 +22,11 @@ import {
     type Route as AppRoute,
 } from './urlState.ts'
 
+const PAGE_TITLES: Record<AppRoute, string> = {
+    generator: '글자티콘 생성기',
+    converter: '글자티콘 변환기',
+}
+
 type AppOutletContext = {
     state: AppUrlState
     setField: <K extends keyof AppUrlState>(key: K) => (value: SetStateAction<AppUrlState[K]>) => void
@@ -39,6 +44,10 @@ function AppLayout() {
     const [state, setState] = useState<AppUrlState>(() =>
         applyLocationToState(undefined, location.pathname, location.search),
     )
+
+    useEffect(() => {
+        document.title = PAGE_TITLES[state.route]
+    }, [state.route])
 
     // Browser back/forward only: merge current route query; keep the other tab in memory.
     useEffect(() => {
