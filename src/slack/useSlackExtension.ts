@@ -10,6 +10,7 @@ export type SlackExtensionState = {
     status: SlackExtensionStatus
     version: string | null
     teams: Team[]
+    teamsLoading: boolean
     teamdomain: string | null
     emoji: Record<string, string>
     emojiLoading: boolean
@@ -23,6 +24,7 @@ export function useSlackExtension(): SlackExtensionState {
     const [status, setStatus] = useState<SlackExtensionStatus>('checking')
     const [version, setVersion] = useState<string | null>(null)
     const [teams, setTeams] = useState<Team[]>([])
+    const [teamsLoading, setTeamsLoading] = useState(false)
     const [teamdomain, setTeamdomainState] = useState<string | null>(() => {
         try {
             return localStorage.getItem(TEAM_STORAGE_KEY)
@@ -44,30 +46,34 @@ export function useSlackExtension(): SlackExtensionState {
     }, [])
 
     const refreshTeams = useCallback(async () => {
-        const result = await bridgeListTeams()
-        if (!result.ok) {
-            setLastError(result.error)
-            setTeams([])
-            return
-        }
-        setLastError(null)
-        setTeams(result.teams)
+        setTeamsLoading(true)
+        try {
+            const result = await bridgeListTeams()
+            if (!result.ok) {
+                setLastError(result.error)
+                setTeams([])
+                return
+            }
+            setLastError(null)
+            setTeams(result.teams)
 
-        setTeamdomainState((prev) => {
-            const stored = prev
-            if (stored && result.teams.some((t) => t.teamdomain === stored)) {
-                return stored
-            }
-            const first = result.teams[0]?.teamdomain ?? null
-            if (first) {
-                try {
-                    localStorage.setItem(TEAM_STORAGE_KEY, first)
-                } catch {
-                    /* ignore */
+            setTeamdomainState((prev) => {
+                if (prev && result.teams.some((t) => t.teamdomain === prev)) {
+                    return prev
                 }
-            }
-            return first
-        })
+                const first = result.teams[0]?.teamdomain ?? null
+                if (first) {
+                    try {
+                        localStorage.setItem(TEAM_STORAGE_KEY, first)
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                return first
+            })
+        } finally {
+            setTeamsLoading(false)
+        }
     }, [])
 
     const refreshEmoji = useCallback(async () => {
@@ -79,18 +85,16 @@ export function useSlackExtension(): SlackExtensionState {
         try {
             const result = await bridgeListEmoji(teamdomain)
             if (!result.ok) {
-                setLastError(result.error)
+                // Don't wipe team-list errors for transient emoji failures on empty stub
                 setEmoji({})
                 return
             }
-            setLastError(null)
             setEmoji(result.emoji)
         } finally {
             setEmojiLoading(false)
         }
     }, [teamdomain])
 
-    // Detect extension
     useEffect(() => {
         let cancelled = false
         ;(async () => {
@@ -110,13 +114,11 @@ export function useSlackExtension(): SlackExtensionState {
         }
     }, [])
 
-    // Load teams when connected
     useEffect(() => {
         if (status !== 'ready') return
         void refreshTeams()
     }, [status, refreshTeams])
 
-    // Load emoji when team changes (step 3 will fill real data)
     useEffect(() => {
         if (status !== 'ready' || !teamdomain) return
         void refreshEmoji()
@@ -126,6 +128,7 @@ export function useSlackExtension(): SlackExtensionState {
         status,
         version,
         teams,
+        teamsLoading,
         teamdomain,
         emoji,
         emojiLoading,

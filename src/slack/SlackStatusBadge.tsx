@@ -5,7 +5,16 @@ type Props = {
 }
 
 const SlackStatusBadge = ({slack}: Props) => {
-    const {status, version, teams, teamdomain, setTeamdomain, refreshTeams, lastError} = slack
+    const {
+        status,
+        version,
+        teams,
+        teamsLoading,
+        teamdomain,
+        setTeamdomain,
+        refreshTeams,
+        lastError,
+    } = slack
 
     if (status === 'checking') {
         return (
@@ -28,13 +37,15 @@ const SlackStatusBadge = ({slack}: Props) => {
         )
     }
 
-    const selected = teams.find((t) => t.teamdomain === teamdomain)
-
     return (
         <div className="slack-badge slack-badge--ready" role="status">
             <span className="slack-badge__dot" aria-hidden />
             <span>확장 연결됨{version ? ` · v${version}` : ''}</span>
-            {teams.length > 0 ? (
+            {teamsLoading ? (
+                <span className="slack-badge__hint slack-badge__hint--inline">
+                    팀 목록 불러오는 중…
+                </span>
+            ) : teams.length > 0 ? (
                 <label className="slack-badge__team">
                     <span className="visually-hidden">워크스페이스</span>
                     <select
@@ -49,12 +60,22 @@ const SlackStatusBadge = ({slack}: Props) => {
                     </select>
                 </label>
             ) : (
-                <span className="slack-badge__hint">
-                    {lastError === 'not_logged_in' || lastError === 'unknown'
-                        ? '팀 목록은 다음 단계에서 연결됩니다'
-                        : selected
-                          ? selected.name
-                          : '팀 목록 대기'}
+                <span className="slack-badge__hint slack-badge__hint--inline">
+                    {lastError === 'network' ? (
+                        'Slack에 연결하지 못했습니다'
+                    ) : (
+                        <>
+                            로그인된 워크스페이스 없음 ·{' '}
+                            <a
+                                href="https://slack.com/signin"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Slack 로그인
+                            </a>
+                            후 ↻
+                        </>
+                    )}
                 </span>
             )}
             <button
@@ -62,6 +83,7 @@ const SlackStatusBadge = ({slack}: Props) => {
                 className="slack-badge__refresh"
                 onClick={() => void refreshTeams()}
                 title="팀 목록 새로고침"
+                disabled={teamsLoading}
             >
                 ↻
             </button>

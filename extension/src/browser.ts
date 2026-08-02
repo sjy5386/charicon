@@ -1,17 +1,11 @@
-type ExtRuntime = typeof chrome.runtime
-
-type ExtApi = {
-    runtime: ExtRuntime
-}
-
 /**
  * Chrome exposes `chrome`; Firefox prefers `browser` (promise-based) and often
  * also provides a callback-compatible `chrome` shim — pick whatever exists.
  */
-export function getExtApi(): ExtApi {
+export function getExtApi(): typeof chrome {
     const g = globalThis as typeof globalThis & {
-        chrome?: ExtApi
-        browser?: ExtApi
+        chrome?: typeof chrome
+        browser?: typeof chrome
     }
     const api = g.chrome?.runtime ? g.chrome : g.browser
     if (!api?.runtime) {

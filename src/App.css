@@ -53,6 +53,14 @@ body {
   font-size: 0.78rem;
 }
 
+.slack-badge__hint--inline {
+  width: auto;
+}
+
+.slack-badge__hint a {
+  color: #646cff;
+}
+
 .slack-badge__hint code {
   font-size: 0.85em;
 }
