@@ -30,9 +30,19 @@ Chrome / Firefox (MV3) 를 지원합니다.
 
 ```shell
 npm run extension:install      # 최초 1회
-npm run extension:build        # dev → extension/dist (localhost + github.io)
-npm run extension:build:prod   # prod (github.io + Slack only)
+npm run extension:build        # dev → localhost + web origin
+npm run extension:build:prod   # prod → web origin + Slack
 npm run extension:zip          # prod zip → extension/release/
+```
+
+웹 앱 주소는 빌드 시 **필수** 주입 (하드코딩 없음). 없으면 빌드 실패.
+
+```shell
+cp extension/config.example.json extension/config.json
+# webOrigin 을 실제 사이트로 수정한 뒤
+npm run extension:zip
+# 또는
+CHARICON_WEB_ORIGIN=https://your.domain.example npm run extension:zip
 ```
 
 개발 중 감시:
@@ -41,16 +51,10 @@ npm run extension:zip          # prod zip → extension/release/
 npm run extension:watch
 ```
 
-아이콘(16/32/48/128): `public/charicon.svg` 에서 생성
+아이콘(16/32/48/128): 생성기 스타일 `글` PNG
 
 ```shell
 npm run extension:icons
-```
-
-단일 배포 URL만 허용할 때:
-
-```shell
-CHARICON_WEB_ORIGIN=https://you.github.io/charicon npm run extension:zip
 ```
 
 ### 로드

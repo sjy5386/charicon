@@ -18,6 +18,9 @@ extension/release/
 # Downloaded at icon-generate time (see extension/scripts/generate-placeholder-icons.mjs)
 extension/fonts/
 
+# Local web origin for extension build (copy from config.example.json)
+extension/config.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -78,28 +78,79 @@ function ensureIcons() {
     execFileSync(process.execPath, [placeholder], {stdio: 'inherit'})
 }
 
+function resolveWebOrigin() {
+    // 1) CHARICON_WEB_ORIGIN  2) extension/config.json → webOrigin
+    // No hardcoded default: missing value fails the build.
+    const fromEnv = process.env.CHARICON_WEB_ORIGIN?.trim()
+    if (fromEnv) {
+        return normalizeWebOrigin(fromEnv)
+    }
+
+    const configPath = join(__dirname, 'config.json')
+    if (existsSync(configPath)) {
+        try {
+            const cfg = JSON.parse(readFileSync(configPath, 'utf8'))
+            if (cfg.webOrigin != null && String(cfg.webOrigin).trim() !== '') {
+                return normalizeWebOrigin(String(cfg.webOrigin))
+            }
+        } catch (e) {
+            console.error('Failed to read extension/config.json:', e)
+            process.exit(1)
+        }
+    }
+
+    console.error(`
+Missing web app origin for the extension build.
+
+Set one of:
+  1) CHARICON_WEB_ORIGIN=https://your.domain.example
+  2) extension/config.json  →  { "webOrigin": "https://your.domain.example" }
+
+  cp extension/config.example.json extension/config.json
+  # edit webOrigin, then:
+  npm run extension:build:prod
+`)
+    process.exit(1)
+}
+
+function normalizeWebOrigin(raw) {
+    const origin = raw.trim().replace(/\/$/, '')
+    if (!/^https?:\/\/[^/\s]+$/i.test(origin)) {
+        console.error(
+            `Invalid web origin "${raw}". Use an origin only, e.g. https://your.domain.example (no path).`,
+        )
+        process.exit(1)
+    }
+    return origin
+}
+
+function injectWebOrigin(manifest) {
+    const origin = resolveWebOrigin()
+    const pattern = `${origin}/*`
+    const scripts = manifest.content_scripts ?? []
+    for (const cs of scripts) {
+        const matches = new Set(cs.matches ?? [])
+        matches.add(pattern)
+        // Drop empty placeholders from prod overlay
+        cs.matches = [...matches].filter(Boolean)
+    }
+    const hosts = new Set(manifest.host_permissions ?? [])
+    hosts.add(pattern)
+    manifest.host_permissions = [...hosts]
+    return {manifest, origin, pattern}
+}
+
 function buildManifest() {
     const base = JSON.parse(readFileSync(join(__dirname, 'manifest.base.json'), 'utf8'))
     const overlayPath = join(__dirname, `manifest.${mode}.json`)
     const overlay = JSON.parse(readFileSync(overlayPath, 'utf8'))
     const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'))
-    const manifest = deepMerge(base, overlay)
+    let manifest = deepMerge(base, overlay)
     manifest.version = pkg.version
-    // Optional: pin a single origin for store builds
-    // CHARICON_WEB_ORIGIN=https://you.github.io/charicon
-    const origin = process.env.CHARICON_WEB_ORIGIN?.replace(/\/$/, '')
-    if (mode === 'prod' && origin) {
-        const pattern = `${origin}/*`
-        for (const cs of manifest.content_scripts ?? []) {
-            cs.matches = [pattern]
-        }
-        manifest.host_permissions = [
-            pattern,
-            ...(manifest.host_permissions ?? []).filter(
-                (p) => p.includes('slack.com'),
-            ),
-        ]
-    }
+    // Web app origin is always injected at build time (not hard-coded in prod overlay)
+    const {manifest: next, origin} = injectWebOrigin(manifest)
+    manifest = next
+    console.log(`web origin → ${origin}  [mode=${mode}]`)
     return manifest
 }
 

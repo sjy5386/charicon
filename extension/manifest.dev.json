@@ -4,8 +4,7 @@
       "matches": [
         "http://localhost/*",
         "http://127.0.0.1/*",
-        "http://[::1]/*",
-        "https://*.github.io/*"
+        "http://[::1]/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle",
@@ -16,7 +15,6 @@
     "http://localhost/*",
     "http://127.0.0.1/*",
     "http://[::1]/*",
-    "https://*.github.io/*",
     "https://slack.com/*",
     "https://*.slack.com/*"
   ]
