@@ -1,10 +1,10 @@
 import * as React from 'react'
-import {useEffect, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import emojiRegex from 'emoji-regex'
 import {
     colorForChar,
-    hangulToQwerty,
     hangulToSlackEmoji,
+    resolveHangulWorkspaceEmoji,
     setFaviconFromCanvas,
     setFaviconFromDataUrl,
 } from './charicon.ts'
@@ -99,9 +99,36 @@ const SlackEmojiConverter = ({
     const [composing, setComposing] = useState(false)
     const targetJumbo = isEmojiOnlyMessage(text)
     const [jumbo, setJumbo] = useState(targetJumbo)
+    /**
+     * Hangul character → chosen workspace emoji name (without colons).
+     * Shared by every occurrence of that character, including ones typed later.
+     */
+    const [nameByChar, setNameByChar] = useState<Record<string, string>>({})
+    /** Which hangul index has the variant picker open (UI only). */
+    const [pickerIndex, setPickerIndex] = useState<number | null>(null)
 
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
     const emojiMap = slack.emoji
+
+    // Close picker when input text changes (keep nameByChar so later inputs inherit)
+    useEffect(() => {
+        setPickerIndex(null)
+    }, [text])
+
+    // Close picker on outside click
+    useEffect(() => {
+        if (pickerIndex == null) return
+        const onPointerDown = (e: PointerEvent) => {
+            const el = e.target as Element | null
+            if (!el) return
+            if (el.closest('[data-emoji-picker]') || el.closest('[data-emoji-pick-trigger]')) {
+                return
+            }
+            setPickerIndex(null)
+        }
+        document.addEventListener('pointerdown', onPointerDown)
+        return () => document.removeEventListener('pointerdown', onPointerDown)
+    }, [pickerIndex])
 
     // Apply size from settled text; freeze while IME is composing (ㅇ→아).
     useEffect(() => {
@@ -109,7 +136,10 @@ const SlackEmojiConverter = ({
         setJumbo(targetJumbo)
     }, [targetJumbo, composing])
 
-    const result = hangulToSlackEmoji(text)
+    const result = useMemo(
+        () => hangulToSlackEmoji(text, nameByChar, slackReady ? emojiMap : undefined),
+        [text, nameByChar, slackReady, emojiMap],
+    )
     const displayText = text || '글자티콘'
     const emojiMode = jumbo ? 'jumbo' : 'inline'
 
@@ -117,12 +147,14 @@ const SlackEmojiConverter = ({
         const ch = firstPreviewHangul(text)
         if (!ch) return
 
-        const name = hangulToQwerty(ch)
-        const realUrl = slackReady ? emojiMap[name] : undefined
+        const {registered, imageUrl} = resolveHangulWorkspaceEmoji(
+            ch,
+            slackReady ? emojiMap : undefined,
+            text ? nameByChar[ch] : undefined,
+        )
 
-        if (realUrl) {
-            // Prefer real Slack image for favicon when available
-            setFaviconFromDataUrl(realUrl)
+        if (registered && imageUrl) {
+            setFaviconFromDataUrl(imageUrl)
             return
         }
 
@@ -132,7 +164,12 @@ const SlackEmojiConverter = ({
 
         const fontPx = EMOJI_STYLE[emojiMode].font
         document.fonts.load(`${fontPx}px ChosunGs`).then(apply, apply)
-    }, [text, emojiMode, slackReady, emojiMap])
+    }, [text, emojiMode, slackReady, emojiMap, nameByChar])
+
+    const pickVariant = (character: string, chosen: string) => {
+        setNameByChar((prev) => ({...prev, [character]: chosen}))
+        setPickerIndex(null)
+    }
 
     const handleCopy = () => {
         navigator.clipboard.writeText(result).then(() => {
@@ -154,26 +191,118 @@ const SlackEmojiConverter = ({
                             return <React.Fragment key={i}>{ch}</React.Fragment>
                         }
 
-                        const name = hangulToQwerty(ch)
-                        const realUrl = slackReady ? emojiMap[name] : undefined
+                        // Placeholder "글자티콘" — no char overrides / pickers
+                        const resolved = resolveHangulWorkspaceEmoji(
+                            ch,
+                            slackReady ? emojiMap : undefined,
+                            text ? nameByChar[ch] : undefined,
+                        )
+                        const {base, name, variants, registered, imageUrl} = resolved
+                        // base missing + alternates only → still registered (first alt / override)
+                        const canPick =
+                            slackReady &&
+                            !slack.emojiLoading &&
+                            text.length > 0 &&
+                            registered &&
+                            variants.length > 1 &&
+                            !!imageUrl
 
-                        if (realUrl) {
+                        if (registered && imageUrl) {
+                            if (canPick) {
+                                const open = pickerIndex === i
+                                const baseMissing = !variants.includes(base)
+                                return (
+                                    <span key={i} className="emoji-pick-wrap">
+                                        <button
+                                            type="button"
+                                            data-emoji-pick-trigger
+                                            className={[
+                                                'slack-preview-emoji is-real is-clickable',
+                                                open ? 'is-picker-open' : '',
+                                            ].filter(Boolean).join(' ')}
+                                            title={
+                                                baseMissing
+                                                    ? `:${name}: (기본 :${base}: 없음) — 이름 선택`
+                                                    : `:${name}: — 클릭해서 이름 선택 (같은 글자 전부)`
+                                            }
+                                            aria-label={`${ch} :${name}:. 클릭하면 후보 선택. 같은 글자에 모두 적용`}
+                                            aria-expanded={open}
+                                            aria-haspopup="listbox"
+                                            onClick={() =>
+                                                setPickerIndex(open ? null : i)
+                                            }
+                                        >
+                                            <img
+                                                src={imageUrl}
+                                                alt={`:${name}:`}
+                                                draggable={false}
+                                            />
+                                        </button>
+                                        {open && (
+                                            <div
+                                                className="emoji-variant-picker"
+                                                data-emoji-picker
+                                                role="listbox"
+                                                aria-label={`${ch} 이모지 이름 선택`}
+                                            >
+                                                {variants.map((v) => {
+                                                    const selected = v === name
+                                                    const url = emojiMap[v]
+                                                    return (
+                                                        <button
+                                                            key={v}
+                                                            type="button"
+                                                            role="option"
+                                                            aria-selected={selected}
+                                                            className={[
+                                                                'emoji-variant-picker__item',
+                                                                selected ? 'is-selected' : '',
+                                                            ].filter(Boolean).join(' ')}
+                                                            onClick={() => pickVariant(ch, v)}
+                                                        >
+                                                            {url ? (
+                                                                <img
+                                                                    src={url}
+                                                                    alt=""
+                                                                    className="emoji-variant-picker__img"
+                                                                    draggable={false}
+                                                                />
+                                                            ) : (
+                                                                <span className="emoji-variant-picker__img-placeholder"/>
+                                                            )}
+                                                            <span className="emoji-variant-picker__name">
+                                                                :{v}:
+                                                            </span>
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </span>
+                                )
+                            }
                             return (
                                 <span
                                     key={i}
                                     className="slack-preview-emoji is-real"
-                                    title={`:${name}:`}
+                                    title={
+                                        !variants.includes(base)
+                                            ? `:${name}: (기본 :${base}: 없음)`
+                                            : `:${name}:`
+                                    }
                                 >
-                                    <img src={realUrl} alt={`:${name}:`} draggable={false}/>
+                                    <img src={imageUrl} alt={`:${name}:`} draggable={false}/>
                                 </span>
                             )
                         }
 
+                        // No base and no allowed alternates → true missing
                         const canCreate =
                             slackReady &&
                             !slack.emojiLoading &&
                             !slack.emojiError &&
-                            !!onCreateCharacter
+                            !!onCreateCharacter &&
+                            text.length > 0
 
                         if (canCreate) {
                             return (
@@ -182,7 +311,7 @@ const SlackEmojiConverter = ({
                                     type="button"
                                     className="slack-preview-emoji is-missing is-clickable"
                                     style={{backgroundColor: colorForChar(ch)}}
-                                    title={`미등록 :${name}: — 클릭하면 생성기로 이동`}
+                                    title={`미등록 :${base}: — 클릭하면 생성기로 이동`}
                                     aria-label={`${ch} 미등록. 생성기에서 만들기`}
                                     onClick={() => onCreateCharacter(ch)}
                                 >
@@ -201,7 +330,7 @@ const SlackEmojiConverter = ({
                                 style={{backgroundColor: colorForChar(ch)}}
                                 title={
                                     slackReady
-                                        ? `미등록 :${name}:`
+                                        ? `미등록 :${base}:`
                                         : undefined
                                 }
                             >
