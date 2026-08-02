@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 import emojiRegex from 'emoji-regex'
 import {
     colorForChar,
@@ -8,6 +8,10 @@ import {
     setFaviconFromCanvas,
     setFaviconFromDataUrl,
 } from './charicon.ts'
+import {
+    loadNameByCharForWorkspace,
+    saveNameByCharForWorkspace,
+} from './slack/nameByCharStorage'
 import type {SlackExtensionState} from './slack/useSlackExtension'
 
 export interface SlackEmojiConverterProps {
@@ -102,6 +106,7 @@ const SlackEmojiConverter = ({
     /**
      * Hangul character → chosen workspace emoji name (without colons).
      * Shared by every occurrence of that character, including ones typed later.
+     * Persisted per Slack teamdomain in localStorage.
      */
     const [nameByChar, setNameByChar] = useState<Record<string, string>>({})
     /** Which hangul index has the variant picker open (UI only). */
@@ -109,6 +114,26 @@ const SlackEmojiConverter = ({
 
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
     const emojiMap = slack.emoji
+    const teamdomain = slack.teamdomain
+    /** Avoid wiping storage when teamdomain changes before nameByChar is re-hydrated. */
+    const skipNextNameByCharSave = useRef(false)
+
+    // Load selections for the current workspace (and clear when disconnected)
+    useEffect(() => {
+        skipNextNameByCharSave.current = true
+        setNameByChar(loadNameByCharForWorkspace(teamdomain))
+        setPickerIndex(null)
+    }, [teamdomain])
+
+    // Persist after picks (per workspace)
+    useEffect(() => {
+        if (!teamdomain) return
+        if (skipNextNameByCharSave.current) {
+            skipNextNameByCharSave.current = false
+            return
+        }
+        saveNameByCharForWorkspace(teamdomain, nameByChar)
+    }, [teamdomain, nameByChar])
 
     // Close picker when input text changes (keep nameByChar so later inputs inherit)
     useEffect(() => {
