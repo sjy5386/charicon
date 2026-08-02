@@ -1,59 +1,154 @@
-import {useState} from 'react'
+import {useEffect, useState, type SetStateAction} from 'react'
+import {
+    Navigate,
+    NavigationType,
+    NavLink,
+    Outlet,
+    Route,
+    Routes,
+    useLocation,
+    useNavigate,
+    useNavigationType,
+    useOutletContext,
+} from 'react-router-dom'
 import './App.css'
-import {randomColor} from './charicon.ts'
-import {Gradient} from "./Canvas.tsx";
-import CharIconGenerator from "./CharIconGenerator.tsx";
-import SlackEmojiConverter from "./SlackEmojiConverter.tsx";
+import CharIconGenerator from './CharIconGenerator.tsx'
+import SlackEmojiConverter from './SlackEmojiConverter.tsx'
+import {
+    applyLocationToState,
+    pathForRoute,
+    searchStringForState,
+    type AppUrlState,
+    type Route as AppRoute,
+} from './urlState.ts'
 
-function App() {
-    const [activeTab, setActiveTab] = useState<'generator' | 'converter'>('generator')
-    const [converterText, setConverterText] = useState('')
+type AppOutletContext = {
+    state: AppUrlState
+    setField: <K extends keyof AppUrlState>(key: K) => (value: SetStateAction<AppUrlState[K]>) => void
+}
 
-    const [character, setCharacter] = useState('글')
+function useOutletApp() {
+    return useOutletContext<AppOutletContext>()
+}
 
-    const [bgIsGradient, setBgIsGradient] = useState(false)
-    const [backgroundColor, setBackgroundColor] = useState(randomColor())
-    const [bgGradient, setBgGradient] = useState<Gradient>({start: '#ffffff', end: '#000000'})
+function AppLayout() {
+    const location = useLocation()
+    const navigate = useNavigate()
+    const navigationType = useNavigationType()
 
-    const [colorIsGradient, setColorIsGradient] = useState(false)
-    const [color, setColor] = useState('white')
-    const [colorGradient, setColorGradient] = useState<Gradient>({start: '#ffffff', end: '#000000'})
+    const [state, setState] = useState<AppUrlState>(() =>
+        applyLocationToState(undefined, location.pathname, location.search),
+    )
 
-    const [font, setFont] = useState('ChosunGs')
-    const [fontSize, setFontSize] = useState(90)
-    const [x, setX] = useState(8)
-    const [y, setY] = useState(80)
+    // Browser back/forward only: merge current route query; keep the other tab in memory.
+    useEffect(() => {
+        if (navigationType !== NavigationType.Pop) return
+        setState(prev => applyLocationToState(prev, location.pathname, location.search))
+    }, [location.pathname, location.search, navigationType])
+
+    // Push query updates from state (replace so typing doesn't flood history).
+    useEffect(() => {
+        const nextPath = pathForRoute(state.route)
+        const nextSearch = searchStringForState(state)
+        const currentSearch = location.search || ''
+        if (location.pathname === nextPath && currentSearch === nextSearch) return
+
+        navigate(
+            {pathname: nextPath, search: nextSearch},
+            {replace: true},
+        )
+    }, [state, location.pathname, location.search, navigate])
+
+    const setField = <K extends keyof AppUrlState>(key: K) =>
+        (value: SetStateAction<AppUrlState[K]>) => {
+            setState(prev => ({
+                ...prev,
+                [key]: typeof value === 'function'
+                    ? (value as (prev: AppUrlState[K]) => AppUrlState[K])(prev[key])
+                    : value,
+            }))
+        }
+
+    const goTo = (route: AppRoute) => {
+        if (state.route === route) return
+        const next = {...state, route}
+        setState(next)
+        navigate(
+            {pathname: pathForRoute(route), search: searchStringForState(next)},
+            {replace: false},
+        )
+    }
 
     return (
         <div className="container">
             <div className="tab-bar">
-                <button className={`tab ${activeTab === 'generator' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('generator')}>생성기
-                </button>
-                <button className={`tab ${activeTab === 'converter' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('converter')}>변환기
-                </button>
+                <NavLink
+                    to={{
+                        pathname: pathForRoute('generator'),
+                        search: searchStringForState({...state, route: 'generator'}),
+                    }}
+                    className={({isActive}) => `tab ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                        e.preventDefault()
+                        goTo('generator')
+                    }}
+                >
+                    생성기
+                </NavLink>
+                <NavLink
+                    to={{
+                        pathname: pathForRoute('converter'),
+                        search: searchStringForState({...state, route: 'converter'}),
+                    }}
+                    className={({isActive}) => `tab ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                        e.preventDefault()
+                        goTo('converter')
+                    }}
+                >
+                    변환기
+                </NavLink>
             </div>
 
-            {activeTab === 'generator' && (
-                <CharIconGenerator
-                    character={character} setCharacter={setCharacter}
-                    bgIsGradient={bgIsGradient} setBgIsGradient={setBgIsGradient}
-                    backgroundColor={backgroundColor} setBackgroundColor={setBackgroundColor}
-                    bgGradient={bgGradient} setBgGradient={setBgGradient}
-                    colorIsGradient={colorIsGradient} setColorIsGradient={setColorIsGradient}
-                    color={color} setColor={setColor}
-                    colorGradient={colorGradient} setColorGradient={setColorGradient}
-                    font={font} setFont={setFont}
-                    fontSize={fontSize} setFontSize={setFontSize}
-                    x={x} setX={setX} y={y} setY={setY}
-                />
-            )}
-
-            {activeTab === 'converter' && (
-                <SlackEmojiConverter text={converterText} setText={setConverterText}/>
-            )}
+            <Outlet context={{state, setField} satisfies AppOutletContext}/>
         </div>
+    )
+}
+
+function GeneratorPage() {
+    const {state, setField} = useOutletApp()
+
+    return (
+        <CharIconGenerator
+            character={state.character} setCharacter={setField('character')}
+            bgIsGradient={state.bgIsGradient} setBgIsGradient={setField('bgIsGradient')}
+            backgroundColor={state.backgroundColor} setBackgroundColor={setField('backgroundColor')}
+            bgGradient={state.bgGradient} setBgGradient={setField('bgGradient')}
+            colorIsGradient={state.colorIsGradient} setColorIsGradient={setField('colorIsGradient')}
+            color={state.color} setColor={setField('color')}
+            colorGradient={state.colorGradient} setColorGradient={setField('colorGradient')}
+            font={state.font} setFont={setField('font')}
+            fontSize={state.fontSize} setFontSize={setField('fontSize')}
+            x={state.x} setX={setField('x')} y={state.y} setY={setField('y')}
+        />
+    )
+}
+
+function ConverterPage() {
+    const {state, setField} = useOutletApp()
+    return <SlackEmojiConverter text={state.converterText} setText={setField('converterText')}/>
+}
+
+function App() {
+    return (
+        <Routes>
+            <Route path="/" element={<AppLayout/>}>
+                <Route index element={<Navigate to="generator" replace/>}/>
+                <Route path="generator" element={<GeneratorPage/>}/>
+                <Route path="converter" element={<ConverterPage/>}/>
+                <Route path="*" element={<Navigate to="generator" replace/>}/>
+            </Route>
+        </Routes>
     )
 }
 

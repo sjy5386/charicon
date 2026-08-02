@@ -29,6 +29,8 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .tab:hover {
