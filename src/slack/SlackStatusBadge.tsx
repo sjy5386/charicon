@@ -13,6 +13,10 @@ const SlackStatusBadge = ({slack}: Props) => {
         teamdomain,
         setTeamdomain,
         refreshTeams,
+        refreshEmoji,
+        emoji,
+        emojiLoading,
+        emojiError,
         lastError,
     } = slack
 
@@ -78,12 +82,23 @@ const SlackStatusBadge = ({slack}: Props) => {
                     )}
                 </span>
             )}
+            {status === 'ready' && teamdomain && teams.length > 0 && (
+                <span className="slack-badge__hint slack-badge__hint--inline">
+                    {emojiLoading
+                        ? '이모지 불러오는 중…'
+                        : emojiError
+                          ? '이모지 목록 실패'
+                          : `이모지 ${Object.keys(emoji).length}개`}
+                </span>
+            )}
             <button
                 type="button"
                 className="slack-badge__refresh"
-                onClick={() => void refreshTeams()}
-                title="팀 목록 새로고침"
-                disabled={teamsLoading}
+                onClick={() => {
+                    void refreshTeams().then(() => refreshEmoji())
+                }}
+                title="팀·이모지 새로고침"
+                disabled={teamsLoading || emojiLoading}
             >
                 ↻
             </button>

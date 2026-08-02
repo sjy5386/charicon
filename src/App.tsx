@@ -149,8 +149,14 @@ function GeneratorPage() {
 }
 
 function ConverterPage() {
-    const {state, setField} = useOutletApp()
-    return <SlackEmojiConverter text={state.converterText} setText={setField('converterText')}/>
+    const {state, setField, slack} = useOutletApp()
+    return (
+        <SlackEmojiConverter
+            text={state.converterText}
+            setText={setField('converterText')}
+            slack={slack}
+        />
+    )
 }
 
 function App() {

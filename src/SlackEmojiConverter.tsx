@@ -1,11 +1,19 @@
 import * as React from 'react'
 import {useEffect, useState} from 'react'
 import emojiRegex from 'emoji-regex'
-import {colorForChar, hangulToSlackEmoji, setFaviconFromCanvas} from './charicon.ts'
+import {
+    colorForChar,
+    hangulToQwerty,
+    hangulToSlackEmoji,
+    setFaviconFromCanvas,
+    setFaviconFromDataUrl,
+} from './charicon.ts'
+import type {SlackExtensionState} from './slack/useSlackExtension'
 
 export interface SlackEmojiConverterProps {
-    text: string;
-    setText: React.Dispatch<React.SetStateAction<string>>;
+    text: string
+    setText: React.Dispatch<React.SetStateAction<string>>
+    slack: SlackExtensionState
 }
 
 const isHangul = (ch: string) => {
@@ -79,11 +87,14 @@ const drawPreviewEmojiToCanvas = (
     return canvas
 }
 
-const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
+const SlackEmojiConverter = ({text, setText, slack}: SlackEmojiConverterProps) => {
     const [copied, setCopied] = useState(false)
     const [composing, setComposing] = useState(false)
     const targetJumbo = isEmojiOnlyMessage(text)
     const [jumbo, setJumbo] = useState(targetJumbo)
+
+    const slackReady = slack.status === 'ready' && !!slack.teamdomain
+    const emojiMap = slack.emoji
 
     // Apply size from settled text; freeze while IME is composing (ㅇ→아).
     useEffect(() => {
@@ -99,14 +110,22 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
         const ch = firstPreviewHangul(text)
         if (!ch) return
 
+        const name = hangulToQwerty(ch)
+        const realUrl = slackReady ? emojiMap[name] : undefined
+
+        if (realUrl) {
+            // Prefer real Slack image for favicon when available
+            setFaviconFromDataUrl(realUrl)
+            return
+        }
+
         const apply = () => {
             setFaviconFromCanvas(drawPreviewEmojiToCanvas(ch, emojiMode))
         }
 
-        // Wait for preview font so the favicon matches the on-page emoji
         const fontPx = EMOJI_STYLE[emojiMode].font
         document.fonts.load(`${fontPx}px ChosunGs`).then(apply, apply)
-    }, [text, emojiMode])
+    }, [text, emojiMode, slackReady, emojiMap])
 
     const handleCopy = () => {
         navigator.clipboard.writeText(result).then(() => {
@@ -127,14 +146,48 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
                         if (!isHangul(ch)) {
                             return <React.Fragment key={i}>{ch}</React.Fragment>
                         }
+
+                        const name = hangulToQwerty(ch)
+                        const realUrl = slackReady ? emojiMap[name] : undefined
+
+                        if (realUrl) {
+                            return (
+                                <span
+                                    key={i}
+                                    className="slack-preview-emoji is-real"
+                                    title={`:${name}:`}
+                                >
+                                    <img src={realUrl} alt={`:${name}:`} draggable={false}/>
+                                </span>
+                            )
+                        }
+
                         return (
-                            <span key={i} className="slack-preview-emoji"
-                                  style={{backgroundColor: colorForChar(ch)}}>
+                            <span
+                                key={i}
+                                className={[
+                                    'slack-preview-emoji',
+                                    slackReady && !slack.emojiLoading ? 'is-missing' : '',
+                                ].filter(Boolean).join(' ')}
+                                style={{backgroundColor: colorForChar(ch)}}
+                                title={
+                                    slackReady
+                                        ? `미등록 :${name}:`
+                                        : undefined
+                                }
+                            >
                                 {ch}
                             </span>
                         )
                     })}
                 </div>
+                {slackReady && (slack.emojiLoading || slack.emojiError) && (
+                    <p className="converter-preview-hint">
+                        {slack.emojiLoading
+                            ? '워크스페이스 이모지 불러오는 중…'
+                            : '워크스페이스 이모지를 불러오지 못했습니다. ↻ 후 다시 시도하세요.'}
+                    </p>
+                )}
             </div>
 
             <h1>글자티콘 변환기</h1>

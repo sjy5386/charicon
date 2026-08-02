@@ -14,6 +14,7 @@ export type SlackExtensionState = {
     teamdomain: string | null
     emoji: Record<string, string>
     emojiLoading: boolean
+    emojiError: string | null
     lastError: string | null
     setTeamdomain: (teamdomain: string) => void
     refreshTeams: () => Promise<void>
@@ -34,6 +35,7 @@ export function useSlackExtension(): SlackExtensionState {
     })
     const [emoji, setEmoji] = useState<Record<string, string>>({})
     const [emojiLoading, setEmojiLoading] = useState(false)
+    const [emojiError, setEmojiError] = useState<string | null>(null)
     const [lastError, setLastError] = useState<string | null>(null)
 
     const setTeamdomain = useCallback((next: string) => {
@@ -79,16 +81,18 @@ export function useSlackExtension(): SlackExtensionState {
     const refreshEmoji = useCallback(async () => {
         if (!teamdomain) {
             setEmoji({})
+            setEmojiError(null)
             return
         }
         setEmojiLoading(true)
         try {
             const result = await bridgeListEmoji(teamdomain)
             if (!result.ok) {
-                // Don't wipe team-list errors for transient emoji failures on empty stub
                 setEmoji({})
+                setEmojiError(result.error)
                 return
             }
+            setEmojiError(null)
             setEmoji(result.emoji)
         } finally {
             setEmojiLoading(false)
@@ -120,7 +124,11 @@ export function useSlackExtension(): SlackExtensionState {
     }, [status, refreshTeams])
 
     useEffect(() => {
-        if (status !== 'ready' || !teamdomain) return
+        if (status !== 'ready' || !teamdomain) {
+            setEmoji({})
+            setEmojiError(null)
+            return
+        }
         void refreshEmoji()
     }, [status, teamdomain, refreshEmoji])
 
@@ -132,6 +140,7 @@ export function useSlackExtension(): SlackExtensionState {
         teamdomain,
         emoji,
         emojiLoading,
+        emojiError,
         lastError,
         setTeamdomain,
         refreshTeams,

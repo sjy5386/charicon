@@ -228,6 +228,36 @@ button.is-success:hover {
   font-size: 17px;
 }
 
+/* Real Slack custom emoji image */
+.slack-preview-emoji.is-real {
+  background: transparent !important;
+  padding: 0;
+  overflow: hidden;
+}
+
+.slack-preview-emoji.is-real img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: inherit;
+}
+
+/* Workspace connected but this name is not registered */
+.slack-preview-emoji.is-missing {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 35%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--label-color) 70%, transparent);
+  outline-offset: 0;
+}
+
+.converter-preview-hint {
+  margin: 0.5rem 0 0;
+  max-width: 28rem;
+  font-size: 0.78rem;
+  color: var(--label-color);
+  line-height: 1.4;
+}
+
 canvas {
   box-shadow: 0 10px 30px var(--shadow-color);
   border-radius: 8px;
