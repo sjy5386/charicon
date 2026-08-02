@@ -124,7 +124,8 @@ export async function listTeams(timeoutMs = 15000): Promise<ListTeamsResult> {
 
 export async function listEmoji(
     teamdomain: string,
-    timeoutMs = 15000,
+    // Chrome may open a Slack tab + wait for SPA boot; keep this above that budget.
+    timeoutMs = 45000,
 ): Promise<ListEmojiResult> {
     try {
         const res = await callBridge<ListEmojiResult & {requestId: string}>(

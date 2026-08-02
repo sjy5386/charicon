@@ -182,12 +182,15 @@ function mergeTeams(...lists: Team[][]): Team[] {
     return out
 }
 
-async function fetchText(url: string): Promise<string | null> {
+async function fetchText(url: string, timeoutMs = 6000): Promise<string | null> {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
     try {
         const res = await fetch(url, {
             credentials: 'include',
             redirect: 'follow',
             cache: 'no-store',
+            signal: ctrl.signal,
             headers: {
                 Accept: 'text/html,application/xhtml+xml',
             },
@@ -196,6 +199,8 @@ async function fetchText(url: string): Promise<string | null> {
         return await res.text()
     } catch {
         return null
+    } finally {
+        clearTimeout(timer)
     }
 }
 
@@ -404,12 +409,71 @@ export async function listTeams(): Promise<ListTeamsResult> {
 // --- emoji.list (Step 3) ---
 
 type EmojiCacheEntry = {at: number; emoji: Record<string, string>}
+/** In-memory only lasts while SW is alive — Chrome kills SW often. */
 const emojiCache = new Map<string, EmojiCacheEntry>()
-const EMOJI_CACHE_TTL_MS = 5 * 60 * 1000
+const EMOJI_CACHE_TTL_MS = 30 * 60 * 1000
+const EMOJI_STORAGE_KEY = 'charicon.emojiCache.v1'
+
+/** Dedupe concurrent listEmoji (React StrictMode double-mount, ↻ spam). */
+const listEmojiInflight = new Map<string, Promise<ListEmojiResult>>()
 
 type PageEmojiListResult =
     | {ok: true; emoji: Record<string, string>}
     | {ok: false; error: string}
+
+type StoredEmojiCache = Record<string, EmojiCacheEntry>
+
+async function readStoredEmoji(domain: string): Promise<Record<string, string> | null> {
+    const api = getExtApi()
+    const store = api.storage?.session ?? api.storage?.local
+    if (!store?.get) return null
+    try {
+        const data = await store.get(EMOJI_STORAGE_KEY)
+        const all = data[EMOJI_STORAGE_KEY] as StoredEmojiCache | undefined
+        const entry = all?.[domain]
+        if (!entry?.emoji || Date.now() - entry.at >= EMOJI_CACHE_TTL_MS) return null
+        return entry.emoji
+    } catch {
+        return null
+    }
+}
+
+async function writeStoredEmoji(domain: string, emoji: Record<string, string>): Promise<void> {
+    const api = getExtApi()
+    const store = api.storage?.session ?? api.storage?.local
+    if (!store?.get || !store?.set) return
+    try {
+        const data = await store.get(EMOJI_STORAGE_KEY)
+        const all = (data[EMOJI_STORAGE_KEY] as StoredEmojiCache | undefined) ?? {}
+        all[domain] = {at: Date.now(), emoji}
+        await store.set({[EMOJI_STORAGE_KEY]: all})
+    } catch {
+        /* ignore quota / private mode */
+    }
+}
+
+async function clearStoredEmoji(domain?: string): Promise<void> {
+    const api = getExtApi()
+    const store = api.storage?.session ?? api.storage?.local
+    if (!store?.get || !store?.set) return
+    try {
+        if (!domain) {
+            await store.remove?.(EMOJI_STORAGE_KEY)
+            return
+        }
+        const data = await store.get(EMOJI_STORAGE_KEY)
+        const all = (data[EMOJI_STORAGE_KEY] as StoredEmojiCache | undefined) ?? {}
+        delete all[domain]
+        await store.set({[EMOJI_STORAGE_KEY]: all})
+    } catch {
+        /* ignore */
+    }
+}
+
+function rememberEmoji(domain: string, emoji: Record<string, string>): void {
+    emojiCache.set(domain, {at: Date.now(), emoji})
+    void writeStoredEmoji(domain, emoji)
+}
 
 function extractApiToken(html: string): string | null {
     const decoded = decodeBasicEntities(html)
@@ -461,12 +525,15 @@ async function callEmojiListApi(
     ]
 
     for (const url of endpoints) {
+        const ctrl = new AbortController()
+        const timer = setTimeout(() => ctrl.abort(), 8000)
         try {
             const body = new URLSearchParams({token})
             const res = await fetch(url, {
                 method: 'POST',
                 credentials: 'include',
                 cache: 'no-store',
+                signal: ctrl.signal,
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                 },
@@ -483,128 +550,266 @@ async function callEmojiListApi(
             }
         } catch {
             /* try next */
+        } finally {
+            clearTimeout(timer)
         }
     }
     return null
 }
 
-/**
- * Runs inside the Slack page (MAIN world) so we can read boot_data and use
- * first-party cookies. Must be fully self-contained (no closed-over vars).
- *
- * Chrome's default executeScript world is ISOLATED — page JS globals are invisible.
- */
-async function pageFetchEmojiList(): Promise<PageEmojiListResult> {
-    const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+type PageJobState = {
+    id: string
+    done: boolean
+    result: PageEmojiListResult | null
+}
 
-    const getToken = (): string | null => {
-        const w = window as unknown as {
-            boot_data?: {api_token?: string}
+/**
+ * MAIN-world: kick off emoji.list job (returns immediately).
+ * Must be fully self-contained — Chrome re-parses func.toString() in the page,
+ * so no closed-over outer constants (use string literals only).
+ *
+ * Chrome often fails to return values from async injected functions — so we
+ * start work here and poll with pagePollEmojiJob (sync).
+ */
+function pageStartEmojiJob(teamdomainHint: string, maxWaitMs: number): boolean {
+    // literal key only — do not reference outer-scope consts
+    const jobKey = '__chariconEmojiJob'
+    const g = window as unknown as Record<string, PageJobState | undefined>
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const waitBudget = Math.max(500, Math.min(maxWaitMs || 10000, 20000))
+    g[jobKey] = {id: jobId, done: false, result: null}
+
+    const hint = (teamdomainHint || '').toLowerCase()
+
+    void (async () => {
+        const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+        type SlackWin = {
+            boot_data?: {
+                api_token?: string
+                team_url?: string
+                domain?: string
+            }
             TS?: {
-                boot_data?: {api_token?: string}
-                model?: {api_token?: string}
+                boot_data?: {api_token?: string; team_url?: string; domain?: string}
+                model?: {
+                    api_token?: string
+                    team?: {domain?: string; url?: string}
+                }
                 tokens?: {api?: string}
             }
         }
-        const candidates = [
-            w.boot_data?.api_token,
-            w.TS?.boot_data?.api_token,
-            w.TS?.model?.api_token,
-            w.TS?.tokens?.api,
-        ]
-        for (const c of candidates) {
-            if (typeof c === 'string' && c.length >= 8) return c
+
+        const win = () => window as unknown as SlackWin
+
+        const domainFromUrl = (url: string | undefined): string | null => {
+            if (!url) return null
+            try {
+                const m = new URL(url, location.origin).hostname.match(
+                    /^([a-z0-9][a-z0-9-]*)\.slack\.com$/i,
+                )
+                if (!m) return null
+                const d = m[1]!.toLowerCase()
+                if (d === 'app' || d === 'api' || d === 'status') return null
+                return d
+            } catch {
+                return null
+            }
         }
 
-        const html = document.documentElement.innerHTML
-        const patterns = [
-            /api_token["']?\s*:\s*["']([^"']{8,})["']/,
-            /"token"\s*:\s*"(xox[a-z]-[^"]+)"/,
-            /name=["']token["'][^>]*value=["']([^"']{8,})["']/,
-        ]
-        for (const re of patterns) {
-            const m = html.match(re)
-            if (m?.[1]) return m[1]
+        const pageTeamDomain = (): string | null => {
+            const ww = win()
+            const direct =
+                ww.TS?.model?.team?.domain ||
+                ww.boot_data?.domain ||
+                ww.TS?.boot_data?.domain
+            if (typeof direct === 'string' && direct.length > 0) return direct.toLowerCase()
+            return (
+                domainFromUrl(ww.TS?.model?.team?.url) ||
+                domainFromUrl(ww.boot_data?.team_url) ||
+                domainFromUrl(ww.TS?.boot_data?.team_url) ||
+                domainFromUrl(location.href)
+            )
         }
-        return null
-    }
 
-    let token: string | null = null
-    for (let i = 0; i < 40; i++) {
-        token = getToken()
-        if (token) break
-        await sleep(250)
-    }
-    if (!token) {
-        return {ok: false, error: 'token_not_found'}
-    }
+        const getToken = (): string | null => {
+            const ww = win()
+            for (const c of [
+                ww.boot_data?.api_token,
+                ww.TS?.boot_data?.api_token,
+                ww.TS?.model?.api_token,
+                ww.TS?.tokens?.api,
+            ]) {
+                if (typeof c === 'string' && c.length >= 8) return c
+            }
+            const html = document.documentElement.innerHTML
+            const patterns = [
+                /api_token["']?\s*:\s*["']([^"']{8,})["']/,
+                /"token"\s*:\s*"(xox[a-z]-[^"]+)"/,
+                /name=["']token["'][^>]*value=["']([^"']{8,})["']/,
+            ]
+            for (const re of patterns) {
+                const m = html.match(re)
+                if (m?.[1] && m[1].length >= 8) return m[1]
+            }
+            return null
+        }
 
-    // Prefer same-origin; also try team host if on app.slack.com
-    const teamHost = location.hostname.match(/^([a-z0-9-]+)\.slack\.com$/i)?.[1]
-    const urls = [
-        `${location.origin}/api/emoji.list`,
-        teamHost && teamHost !== 'app'
-            ? `https://${teamHost}.slack.com/api/emoji.list`
-            : null,
-        'https://slack.com/api/emoji.list',
-    ].filter(Boolean) as string[]
+        const finish = (result: PageEmojiListResult) => {
+            const cur = g[jobKey]
+            if (!cur || cur.id !== jobId) return
+            g[jobKey] = {id: jobId, done: true, result}
+        }
 
-    for (const url of urls) {
         try {
-            const res = await fetch(url, {
-                method: 'POST',
-                credentials: 'include',
-                cache: 'no-store',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                },
-                body: new URLSearchParams({token}).toString(),
+            const deadline = Date.now() + waitBudget
+            let token: string | null = null
+            let pageDomain: string | null = null
+            while (Date.now() < deadline) {
+                token = getToken()
+                pageDomain = pageTeamDomain()
+                if (token) break
+                await sleep(200)
+            }
+            if (!token) {
+                finish({ok: false, error: 'token_not_found'})
+                return
+            }
+
+            const domain = hint || pageDomain || domainFromUrl(location.href)
+            if (!domain) {
+                finish({ok: false, error: 'team_not_found'})
+                return
+            }
+
+            const urls = [
+                `https://${domain}.slack.com/api/emoji.list`,
+                pageDomain && pageDomain !== domain
+                    ? `https://${pageDomain}.slack.com/api/emoji.list`
+                    : null,
+                `${location.origin}/api/emoji.list`,
+                'https://slack.com/api/emoji.list',
+                'https://app.slack.com/api/emoji.list',
+            ].filter(Boolean) as string[]
+
+            let lastError = 'network'
+            for (const url of urls) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        credentials: 'include',
+                        cache: 'no-store',
+                        headers: {
+                            'Content-Type':
+                                'application/x-www-form-urlencoded;charset=UTF-8',
+                        },
+                        body: new URLSearchParams({token}).toString(),
+                    })
+                    if (!res.ok) {
+                        lastError = `http_${res.status}`
+                        continue
+                    }
+                    const json = (await res.json()) as {
+                        ok?: boolean
+                        emoji?: Record<string, string>
+                        error?: string
+                    }
+                    if (json.ok && json.emoji && typeof json.emoji === 'object') {
+                        finish({ok: true, emoji: json.emoji})
+                        return
+                    }
+                    if (json.error) lastError = String(json.error)
+                } catch {
+                    /* next */
+                }
+            }
+            finish({ok: false, error: lastError})
+        } catch (e) {
+            finish({
+                ok: false,
+                error: e instanceof Error ? e.message : 'unknown',
             })
-            if (!res.ok) continue
-            const json = (await res.json()) as {
-                ok?: boolean
-                emoji?: Record<string, string>
-                error?: string
-            }
-            if (json.ok && json.emoji && typeof json.emoji === 'object') {
-                return {ok: true, emoji: json.emoji}
-            }
-            if (json.error) {
-                return {ok: false, error: String(json.error)}
-            }
-        } catch {
-            /* try next */
         }
-    }
-    return {ok: false, error: 'network'}
+    })()
+
+    return true
 }
 
-async function executePageEmojiList(tabId: number): Promise<PageEmojiListResult | null> {
+/** MAIN-world: read job status. Sync — safe for Chrome executeScript. */
+function pagePollEmojiJob(): PageEmojiListResult | 'pending' | null {
+    const jobKey = '__chariconEmojiJob'
+    const g = window as unknown as Record<string, PageJobState | undefined>
+    const job = g[jobKey]
+    if (!job) return null
+    if (!job.done) return 'pending'
+    return job.result
+}
+
+async function executePageEmojiList(
+    tabId: number,
+    teamdomain: string,
+    maxWaitMs: number,
+): Promise<PageEmojiListResult | null> {
     const api = getExtApi()
     if (!api.scripting?.executeScript) return null
 
-    const run = async (world?: 'MAIN' | 'ISOLATED') => {
-        // Async injected funcs are supported at runtime; @types/chrome types them as sync.
-        const results = await api.scripting.executeScript({
+    const start = async (world: 'MAIN' | 'ISOLATED') => {
+        await api.scripting.executeScript({
             target: {tabId},
-            func: pageFetchEmojiList as unknown as () => PageEmojiListResult,
-            // Chrome: MAIN is required to read page boot_data
-            ...(world ? {world} : {}),
+            world,
+            func: pageStartEmojiJob,
+            args: [teamdomain, maxWaitMs],
         })
-        return (results?.[0]?.result as PageEmojiListResult | undefined) ?? null
     }
 
-    try {
-        const main = await run('MAIN')
-        if (main) return main
-    } catch {
-        /* MAIN unsupported or blocked — try isolated (HTML scrape path only) */
+    const poll = async (world: 'MAIN' | 'ISOLATED') => {
+        const results = await api.scripting.executeScript({
+            target: {tabId},
+            world,
+            func: pagePollEmojiJob,
+        })
+        return results?.[0]?.result as PageEmojiListResult | 'pending' | null | undefined
     }
+
+    let world: 'MAIN' | 'ISOLATED' = 'MAIN'
     try {
-        return await run('ISOLATED')
+        await start('MAIN')
     } catch {
-        return null
+        world = 'ISOLATED'
+        try {
+            await start('ISOLATED')
+        } catch {
+            return null
+        }
     }
+
+    // Poll until job finishes (page work + a little slack for API)
+    const deadline = Date.now() + maxWaitMs + 8000
+    while (Date.now() < deadline) {
+        try {
+            const val = await poll(world)
+            if (val === 'pending' || val == null) {
+                await new Promise((r) => setTimeout(r, 250))
+                continue
+            }
+            return val
+        } catch {
+            await new Promise((r) => setTimeout(r, 250))
+        }
+    }
+    return {ok: false, error: 'token_not_found'}
+}
+
+function scoreSlackTab(url: string | undefined, teamdomain: string): number {
+    if (!url) return -1
+    let score = 0
+    if (url.includes(`${teamdomain}.slack.com`)) score += 10
+    if (url.includes('app.slack.com')) score += 6
+    if (url.includes('/customize/emoji')) score += 5
+    if (url.includes('/customize')) score += 3
+    if (url.includes('/client')) score += 2
+    if (url.includes('slack.com')) score += 1
+    return score
 }
 
 async function listEmojiViaOpenTabs(teamdomain: string): Promise<PageEmojiListResult | null> {
@@ -618,74 +823,117 @@ async function listEmojiViaOpenTabs(teamdomain: string): Promise<PageEmojiListRe
         return null
     }
 
-    const needle = `${teamdomain}.slack.com`
-    // Prefer customize/emoji and client tabs for this workspace
     const ranked = tabs
-        .filter((t) => t.id != null && t.url?.includes(needle))
-        .sort((a, b) => {
-            const score = (u: string | undefined) => {
-                if (!u) return 0
-                if (u.includes('/customize/emoji')) return 3
-                if (u.includes('/customize')) return 2
-                if (u.includes('/client')) return 1
-                return 0
-            }
-            return score(b.url) - score(a.url)
-        })
+        .filter((t) => t.id != null && scoreSlackTab(t.url, teamdomain) > 0)
+        .sort(
+            (a, b) =>
+                scoreSlackTab(b.url, teamdomain) - scoreSlackTab(a.url, teamdomain),
+        )
+        // Best tab only — retries on many tabs caused flakiness + slowness
+        .slice(0, 1)
 
+    let lastFail: PageEmojiListResult | null = null
     for (const tab of ranked) {
         if (tab.id == null) continue
-        const result = await executePageEmojiList(tab.id)
+        const result = await executePageEmojiList(tab.id, teamdomain, 12000)
         if (result?.ok) return result
-        // keep last error but continue trying other tabs
-        if (result && !result.ok && result.error !== 'token_not_found') {
-            // still try other tabs
-        }
+        if (result) lastFail = result
     }
-    return null
+    return lastFail
 }
 
+async function countSlackTabs(teamdomain: string): Promise<number> {
+    const api = getExtApi()
+    if (!api.tabs?.query) return 0
+    try {
+        const tabs = await api.tabs.query({})
+        return tabs.filter((t) => scoreSlackTab(t.url, teamdomain) > 0).length
+    } catch {
+        return 0
+    }
+}
+
+/** Single background tab — never open two (duplicate calls used to). */
 async function listEmojiViaTempTab(teamdomain: string): Promise<PageEmojiListResult | null> {
     const api = getExtApi()
     if (!api.tabs?.create) return null
 
-    const urls = [
-        `https://${teamdomain}.slack.com/customize/emoji`,
-        `https://${teamdomain}.slack.com/`,
-    ]
-
-    for (const url of urls) {
-        let tabId: number | undefined
+    const url = `https://${teamdomain}.slack.com/customize/emoji`
+    let tabId: number | undefined
+    try {
+        const tab = await api.tabs.create({url, active: false})
+        tabId = tab.id
+        if (tabId == null) return null
         try {
-            const tab = await api.tabs.create({url, active: false})
-            tabId = tab.id
-            if (tabId == null) continue
             await waitForTabComplete(tabId)
-            // SPA boot_data often appears after "complete"
-            await new Promise((r) => setTimeout(r, 1500))
-            const result = await executePageEmojiList(tabId)
-            if (result?.ok) return result
-            if (result && !result.ok && result.error !== 'token_not_found') {
-                return result
-            }
         } catch {
-            /* try next url */
-        } finally {
-            if (tabId != null) {
-                try {
-                    await api.tabs.remove(tabId)
-                } catch {
-                    /* ignore */
-                }
+            /* still try inject */
+        }
+        await new Promise((r) => setTimeout(r, 1200))
+        return await executePageEmojiList(tabId, teamdomain, 14000)
+    } catch {
+        return null
+    } finally {
+        if (tabId != null) {
+            try {
+                await api.tabs.remove(tabId)
+            } catch {
+                /* ignore */
             }
         }
     }
-    return null
 }
 
 export function invalidateEmojiCache(teamdomain?: string) {
-    if (teamdomain) emojiCache.delete(teamdomain.toLowerCase())
-    else emojiCache.clear()
+    if (teamdomain) {
+        const d = teamdomain.toLowerCase()
+        emojiCache.delete(d)
+        void clearStoredEmoji(d)
+    } else {
+        emojiCache.clear()
+        void clearStoredEmoji()
+    }
+}
+
+async function listEmojiUncached(domain: string): Promise<ListEmojiResult> {
+    // 1) Existing Slack tab (best for Chrome — no extra tab flash)
+    const fromOpen = await listEmojiViaOpenTabs(domain)
+    if (fromOpen?.ok) {
+        const emoji = resolveEmojiMap(fromOpen.emoji)
+        rememberEmoji(domain, emoji)
+        return {ok: true, emoji}
+    }
+
+    // 2) Background fetch (Firefox cookies; Chrome often empty — timeout-bounded)
+    const customizeUrl = `https://${domain}.slack.com/customize/emoji`
+    const fetched = await fetchText(customizeUrl, 5000)
+    if (fetched) {
+        const token = extractApiToken(fetched)
+        if (token) {
+            const emoji = await callEmojiListApi(domain, token)
+            if (emoji) {
+                rememberEmoji(domain, emoji)
+                return {ok: true, emoji}
+            }
+        }
+    }
+
+    // 3) One temp tab only if we have no usable open tab result
+    //    (opening two URLs / parallel calls was the "2 emoji settings tabs" bug)
+    const fromTemp = await listEmojiViaTempTab(domain)
+    if (fromTemp?.ok) {
+        const emoji = resolveEmojiMap(fromTemp.emoji)
+        rememberEmoji(domain, emoji)
+        return {ok: true, emoji}
+    }
+
+    const err =
+        fromTemp?.error ||
+        fromOpen?.error ||
+        ((await countSlackTabs(domain)) === 0
+            ? 'token_not_found'
+            : 'token_not_found')
+    return {ok: false, error: err}
 }
 
 export async function listEmoji(teamdomain: string): Promise<ListEmojiResult> {
@@ -694,48 +942,27 @@ export async function listEmoji(teamdomain: string): Promise<ListEmojiResult> {
         return {ok: false, error: 'team_not_found'}
     }
 
-    const cached = emojiCache.get(domain)
-    if (cached && Date.now() - cached.at < EMOJI_CACHE_TTL_MS) {
-        return {ok: true, emoji: cached.emoji}
+    // Memory cache (fast path while SW alive)
+    const mem = emojiCache.get(domain)
+    if (mem && Date.now() - mem.at < EMOJI_CACHE_TTL_MS) {
+        return {ok: true, emoji: mem.emoji}
     }
 
-    // 1) Background fetch (works on Firefox when cookies attach to SW/page fetch)
-    const customizeUrl = `https://${domain}.slack.com/customize/emoji`
-    const fetched = await fetchText(customizeUrl)
-    if (fetched) {
-        const token = extractApiToken(fetched)
-        if (token) {
-            const emoji = await callEmojiListApi(domain, token)
-            if (emoji) {
-                emojiCache.set(domain, {at: Date.now(), emoji})
-                return {ok: true, emoji}
-            }
-        }
+    // Session/local storage — survives Chrome SW restarts (main flake after refresh)
+    const stored = await readStoredEmoji(domain)
+    if (stored) {
+        emojiCache.set(domain, {at: Date.now(), emoji: stored})
+        return {ok: true, emoji: stored}
     }
 
-    // 2) Existing workspace tabs — MAIN world page context (Chrome)
-    const fromOpen = await listEmojiViaOpenTabs(domain)
-    if (fromOpen?.ok) {
-        const emoji = resolveEmojiMap(fromOpen.emoji)
-        emojiCache.set(domain, {at: Date.now(), emoji})
-        return {ok: true, emoji}
-    }
+    const existing = listEmojiInflight.get(domain)
+    if (existing) return existing
 
-    // 3) Temporary tab + MAIN world (Chrome when no open Slack tab)
-    const fromTemp = await listEmojiViaTempTab(domain)
-    if (fromTemp?.ok) {
-        const emoji = resolveEmojiMap(fromTemp.emoji)
-        emojiCache.set(domain, {at: Date.now(), emoji})
-        return {ok: true, emoji}
-    }
-
-    if (fromOpen?.error === 'token_not_found' || fromTemp?.error === 'token_not_found') {
-        return {ok: false, error: 'token_not_found'}
-    }
-    if (fromOpen?.error || fromTemp?.error) {
-        return {ok: false, error: fromOpen?.error || fromTemp?.error || 'network'}
-    }
-    return {ok: false, error: 'token_not_found'}
+    const pending = listEmojiUncached(domain).finally(() => {
+        listEmojiInflight.delete(domain)
+    })
+    listEmojiInflight.set(domain, pending)
+    return pending
 }
 
 export async function registerEmoji(

@@ -87,7 +87,7 @@ const SlackStatusBadge = ({slack}: Props) => {
                     {emojiLoading
                         ? '이모지 불러오는 중…'
                         : emojiError
-                          ? '이모지 목록 실패'
+                          ? `이모지 목록 실패 (${emojiError})`
                           : `이모지 ${Object.keys(emoji).length}개`}
                 </span>
             )}

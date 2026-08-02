@@ -130,7 +130,7 @@ function AppLayout() {
 }
 
 function GeneratorPage() {
-    const {state, setField} = useOutletApp()
+    const {state, setField, slack} = useOutletApp()
 
     return (
         <CharIconGenerator
@@ -144,6 +144,7 @@ function GeneratorPage() {
             font={state.font} setFont={setField('font')}
             fontSize={state.fontSize} setFontSize={setField('fontSize')}
             x={state.x} setX={setField('x')} y={state.y} setY={setField('y')}
+            slack={slack}
         />
     )
 }

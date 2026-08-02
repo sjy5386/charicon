@@ -2,6 +2,7 @@ import * as React from 'react'
 import {useRef, useState} from 'react'
 import {downloadCanvas, hangulToQwerty} from './charicon.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
+import type {SlackExtensionState} from './slack/useSlackExtension'
 
 export interface CharIconGeneratorProps {
     character: string;
@@ -26,6 +27,7 @@ export interface CharIconGeneratorProps {
     setX: React.Dispatch<React.SetStateAction<number>>;
     y: number;
     setY: React.Dispatch<React.SetStateAction<number>>;
+    slack: SlackExtensionState;
 }
 
 const GradientToggle = ({
@@ -52,11 +54,17 @@ const CharIconGenerator = ({
                                font, setFont,
                                fontSize, setFontSize,
                                x, setX, y, setY,
+                               slack,
                            }: CharIconGeneratorProps) => {
     const canvasRef = useRef(null)
     const [downloaded, setDownloaded] = useState(false)
     const size = 100
     const fonts = ['ChosunGs', 'Gungsuhche', '궁서체']
+
+    const emojiName = character ? hangulToQwerty(character) : ''
+    const slackReady = slack.status === 'ready' && !!slack.teamdomain
+    const registeredUrl = emojiName && slackReady ? slack.emoji[emojiName] : undefined
+    const registrationKnown = slackReady && !slack.emojiLoading && !slack.emojiError && !!emojiName
 
     const handleDownload = () => {
         downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')
@@ -73,6 +81,42 @@ const CharIconGenerator = ({
                         font={font} fontSize={fontSize} setFontSize={setFontSize}
                         x={x} setX={setX} y={y} setY={setY}></Canvas>
             </div>
+
+            {slackReady && emojiName && (
+                <div
+                    className={[
+                        'workspace-emoji-status',
+                        registrationKnown && registeredUrl ? 'is-registered' : '',
+                        registrationKnown && !registeredUrl ? 'is-missing' : '',
+                    ].filter(Boolean).join(' ')}
+                    role="status"
+                >
+                    {registeredUrl ? (
+                        <img
+                            className="workspace-emoji-status__img"
+                            src={registeredUrl}
+                            alt={`:${emojiName}:`}
+                            draggable={false}
+                        />
+                    ) : (
+                        <span className="workspace-emoji-status__placeholder" aria-hidden>
+                            {character}
+                        </span>
+                    )}
+                    <div className="workspace-emoji-status__meta">
+                        <code className="workspace-emoji-status__name">:{emojiName}:</code>
+                        <span className="workspace-emoji-status__label">
+                            {slack.emojiLoading
+                                ? '워크스페이스 확인 중…'
+                                : slack.emojiError
+                                  ? '목록을 불러오지 못함'
+                                  : registeredUrl
+                                    ? '등록됨'
+                                    : '미등록'}
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <h1>글자티콘 생성기</h1>
 

@@ -258,6 +258,76 @@ button.is-success:hover {
   line-height: 1.4;
 }
 
+.workspace-emoji-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.25rem auto 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  text-align: left;
+  max-width: 100%;
+}
+
+.workspace-emoji-status.is-registered {
+  border-color: #2f9e44;
+}
+
+.workspace-emoji-status.is-missing {
+  border-color: color-mix(in srgb, var(--label-color) 55%, transparent);
+}
+
+.workspace-emoji-status__img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.workspace-emoji-status__placeholder {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--border-color);
+  color: var(--text-color);
+  font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.workspace-emoji-status__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.workspace-emoji-status__name {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.workspace-emoji-status__label {
+  font-size: 0.8rem;
+  color: var(--label-color);
+}
+
+.workspace-emoji-status.is-registered .workspace-emoji-status__label {
+  color: #2f9e44;
+  font-weight: 600;
+}
+
+.workspace-emoji-status.is-missing .workspace-emoji-status__label {
+  color: var(--label-color);
+}
+
 canvas {
   box-shadow: 0 10px 30px var(--shadow-color);
   border-radius: 8px;
