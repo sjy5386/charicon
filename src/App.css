@@ -10,64 +10,139 @@ body {
   color: var(--text-color);
 }
 
-.slack-badge {
+/* Fixed dock — out of document flow so main UI width stays stable */
+.slack-dock {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 60;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: min(20rem, calc(100vw - 2rem));
+  text-align: left;
+  pointer-events: none;
+}
+
+.slack-dock > * {
+  pointer-events: auto;
+}
+
+.slack-dock__chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem 0.75rem;
-  margin-bottom: 1rem;
-  padding: 0.55rem 0.85rem;
-  border-radius: 8px;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
-  font-size: 0.85rem;
-  line-height: 1.4;
-  text-align: left;
-}
-
-.slack-badge--muted {
-  color: var(--label-color);
-}
-
-.slack-badge--warn {
-  border-color: #b08900;
   color: var(--text-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: 0 4px 16px var(--card-shadow, rgba(0, 0, 0, 0.35));
+  cursor: pointer;
+  appearance: none;
+  max-width: 100%;
 }
 
-.slack-badge--ready {
-  border-color: #2f9e44;
+.slack-dock__chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
 }
 
-.slack-badge__dot {
+.slack-dock__chip-dot {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: #2f9e44;
   flex-shrink: 0;
+  background: var(--label-color);
 }
 
-.slack-badge__hint {
-  width: 100%;
+.slack-dock__chip--checking .slack-dock__chip-dot {
+  background: var(--label-color);
+}
+
+.slack-dock__chip--missing .slack-dock__chip-dot {
+  background: #b08900;
+}
+
+.slack-dock__chip--warn .slack-dock__chip-dot {
+  background: #f08c00;
+}
+
+.slack-dock__chip--ready .slack-dock__chip-dot {
+  background: #2f9e44;
+}
+
+.slack-dock__panel {
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  box-shadow: 0 10px 32px var(--card-shadow, rgba(0, 0, 0, 0.45));
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.slack-dock__panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.slack-dock__panel-head strong {
+  font-size: 0.9rem;
+}
+
+.slack-dock__ver {
+  color: var(--label-color);
+  font-size: 0.75rem;
+}
+
+.slack-dock__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.slack-dock__line {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.slack-dock__line.muted {
+  color: var(--label-color);
+  font-size: 0.8rem;
+}
+
+.slack-dock__line a {
+  color: #646cff;
+}
+
+.slack-dock__line code {
+  font-size: 0.85em;
+}
+
+.slack-dock__field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
   color: var(--label-color);
   font-size: 0.78rem;
 }
 
-.slack-badge__hint--inline {
-  width: auto;
-}
-
-.slack-badge__hint a {
-  color: #646cff;
-}
-
-.slack-badge__hint code {
-  font-size: 0.85em;
-}
-
-.slack-badge__team select {
-  max-width: 16rem;
-  padding: 0.25rem 0.4rem;
+.slack-dock__field select {
+  width: 100%;
+  padding: 0.35rem 0.45rem;
   border-radius: 6px;
   border: 1px solid var(--input-border);
   background: var(--bg-color);
@@ -75,11 +150,11 @@ body {
   font-size: 0.85rem;
 }
 
-.slack-badge__refresh {
-  padding: 0.2rem 0.5rem;
-  font-size: 0.95rem;
-  line-height: 1;
-  min-width: auto;
+.slack-dock__refresh {
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  width: 100%;
 }
 
 .visually-hidden {
@@ -359,74 +434,69 @@ button.slack-preview-emoji.is-picker-open {
   line-height: 1.4;
 }
 
-.workspace-emoji-status {
-  display: inline-flex;
+/* Compact Slack registration status — just above action buttons */
+.generator-slack-meta {
+  display: flex;
   align-items: center;
-  gap: 0.65rem;
-  margin: 0.25rem auto 0.75rem;
-  padding: 0.45rem 0.75rem;
+  gap: 0.45rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 1rem;
+  padding: 0.4rem 0.55rem;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  background: var(--card-bg);
+  background: color-mix(in srgb, var(--bg-color) 65%, var(--card-bg));
   text-align: left;
-  max-width: 100%;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
-.workspace-emoji-status.is-registered {
-  border-color: #2f9e44;
+.generator-slack-meta.is-registered {
+  border-color: color-mix(in srgb, #2f9e44 55%, var(--border-color));
 }
 
-.workspace-emoji-status.is-missing {
-  border-color: color-mix(in srgb, var(--label-color) 55%, transparent);
+.generator-slack-meta.is-missing {
+  border-color: color-mix(in srgb, var(--label-color) 40%, var(--border-color));
 }
 
-.workspace-emoji-status__img {
-  width: 36px;
-  height: 36px;
+.generator-slack-meta__img {
+  width: 22px;
+  height: 22px;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 3px;
   flex-shrink: 0;
 }
 
-.workspace-emoji-status__placeholder {
-  width: 36px;
-  height: 36px;
+.generator-slack-meta__placeholder {
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--border-color);
   color: var(--text-color);
   font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
-  font-size: 1.25rem;
+  font-size: 0.85rem;
   flex-shrink: 0;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-.workspace-emoji-status__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.workspace-emoji-status__name {
-  font-size: 0.9rem;
+.generator-slack-meta__name {
   color: var(--text-color);
+  font-size: 0.82rem;
 }
 
-.workspace-emoji-status__label {
-  font-size: 0.8rem;
+.generator-slack-meta__label {
+  margin-left: auto;
   color: var(--label-color);
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
-.workspace-emoji-status.is-registered .workspace-emoji-status__label {
+.generator-slack-meta.is-registered .generator-slack-meta__label {
   color: #2f9e44;
   font-weight: 600;
-}
-
-.workspace-emoji-status.is-missing .workspace-emoji-status__label {
-  color: var(--label-color);
 }
 
 .generator-actions {
@@ -434,7 +504,7 @@ button.slack-preview-emoji.is-picker-open {
   flex-wrap: wrap;
   gap: 0.6rem;
   justify-content: center;
-  margin-top: 1.2rem;
+  margin-top: 0.75rem;
 }
 
 .generator-actions button {
