@@ -251,15 +251,18 @@ const CharIconGenerator = ({
                         )}
                         <code className="generator-slack-meta__name">:{emojiName}:</code>
                         <span className="generator-slack-meta__label">
-                            {slack.emojiLoading
-                                ? '확인 중…'
-                                : slack.emojiError
-                                  ? '목록 실패'
-                                  : baseRegisteredUrl
-                                    ? '기본 이름 등록됨'
-                                    : workspaceEmoji?.registered
-                                      ? '대체 이름만 있음'
-                                      : '미등록'}
+                            {slack.emojiLoading || registering ? (
+                                <span className="generator-slack-meta__busy">
+                                    <span className="ui-spinner generator-slack-meta__spinner" aria-hidden />
+                                    {registering ? '등록 중…' : '확인 중…'}
+                                </span>
+                            ) : slack.emojiError
+                              ? '목록 실패'
+                              : baseRegisteredUrl
+                                ? '기본 이름 등록됨'
+                                : workspaceEmoji?.registered
+                                  ? '대체 이름만 있음'
+                                  : '미등록'}
                         </span>
                     </div>
                 )}
@@ -271,13 +274,16 @@ const CharIconGenerator = ({
                             disabled={!canRegister}
                             onClick={() => void handleRegister()}
                         >
-                            {registering
-                                ? '등록 중…'
-                                : registerOk
-                                  ? '등록됨'
-                                  : baseRegisteredUrl
-                                    ? '이미 등록됨'
-                                    : 'Slack에 등록'}
+                            {registering ? (
+                                <>
+                                    <span className="ui-spinner generator-action-spinner" aria-hidden />
+                                    등록 중…
+                                </>
+                            ) : registerOk
+                              ? '등록됨'
+                              : baseRegisteredUrl
+                                ? '이미 등록됨'
+                                : 'Slack에 등록'}
                         </button>
                     )}
                     <button

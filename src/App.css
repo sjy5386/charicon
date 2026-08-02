@@ -150,11 +150,56 @@ body {
   font-size: 0.85rem;
 }
 
+.slack-dock__actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .slack-dock__refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   margin: 0;
   padding: 0.4rem 0.65rem;
   font-size: 0.8rem;
   width: 100%;
+}
+
+.slack-dock__refresh-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.slack-dock__line--busy {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.slack-dock__chip-spinner {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-width: 1.5px;
+}
+
+/* Shared loading spinner */
+.ui-spinner {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid color-mix(in srgb, var(--label-color) 35%, transparent);
+  border-top-color: var(--text-color);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: ui-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .visually-hidden {
@@ -499,6 +544,18 @@ button.slack-preview-emoji.is-picker-open {
   font-weight: 600;
 }
 
+.generator-slack-meta__busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.generator-slack-meta__spinner {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-width: 1.5px;
+}
+
 .generator-actions {
   display: flex;
   flex-wrap: wrap;
@@ -509,6 +566,16 @@ button.slack-preview-emoji.is-picker-open {
 
 .generator-actions button {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.generator-action-spinner {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 2px;
 }
 
 .generator-register-error {
