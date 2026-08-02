@@ -4,11 +4,18 @@
   "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
-    "watch": "node build.mjs --watch",
+    "icons": "node scripts/generate-placeholder-icons.mjs",
+    "build": "node build.mjs --dev",
+    "build:dev": "node build.mjs --dev",
+    "build:prod": "node build.mjs --prod",
+    "watch": "node build.mjs --dev --watch",
+    "zip": "node build.mjs --prod --zip",
+    "zip:dev": "node build.mjs --dev --zip",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.3",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/chrome": "^0.0.287",
     "esbuild": "^0.25.0",
     "typescript": "~5.6.2"

@@ -1,14 +1,4 @@
 {
-  "manifest_version": 3,
-  "name": "__MSG_extName__",
-  "description": "__MSG_extDescription__",
-  "version": "0.4.0",
-  "default_locale": "en",
-  "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
-  },
-  "permissions": ["tabs", "scripting", "storage"],
   "content_scripts": [
     {
       "matches": [
@@ -29,11 +19,5 @@
     "https://*.github.io/*",
     "https://slack.com/*",
     "https://*.slack.com/*"
-  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "charicon-slack@charicon.local",
-      "strict_min_version": "109.0"
-    }
-  }
+  ]
 }

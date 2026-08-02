@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Extension store packages (rebuild with npm run extension:zip)
+extension/release/
+
+# Downloaded at icon-generate time (see extension/scripts/generate-placeholder-icons.mjs)
+extension/fonts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

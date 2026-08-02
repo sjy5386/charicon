@@ -29,14 +29,28 @@ Chrome / Firefox (MV3) 를 지원합니다.
 ### 빌드
 
 ```shell
-npm run extension:install   # 최초 1회
-npm run extension:build     # → extension/dist
+npm run extension:install      # 최초 1회
+npm run extension:build        # dev → extension/dist (localhost + github.io)
+npm run extension:build:prod   # prod (github.io + Slack only)
+npm run extension:zip          # prod zip → extension/release/
 ```
 
 개발 중 감시:
 
 ```shell
 npm run extension:watch
+```
+
+아이콘(16/32/48/128): `public/charicon.svg` 에서 생성
+
+```shell
+npm run extension:icons
+```
+
+단일 배포 URL만 허용할 때:
+
+```shell
+CHARICON_WEB_ORIGIN=https://you.github.io/charicon npm run extension:zip
 ```
 
 ### 로드
@@ -55,12 +69,12 @@ npm run extension:watch
 ### 확인
 
 1. `npm run dev` 로 웹 실행
-2. 상단 배지가 **확장 연결됨** 이면 연결 성공
-3. 브라우저에 Slack 로그인된 워크스페이스가 있으면 팀 드롭다운 표시 (↻ 새로고침)
+2. 우측 하단 Slack 도크 칩이 연결 상태를 표시
+3. 브라우저에 Slack 로그인된 워크스페이스가 있으면 팀 선택 가능
 4. 변환기: 등록된 글자는 Slack 실이미지, 미등록은 점선 로컬 미리보기
 5. 생성기: 미등록 글자는 **Slack에 등록** 버튼으로 바로 추가
 
-프로토콜 공유 코드: `shared/protocol.ts`
+프로토콜 공유 코드: `shared/protocol.ts` · 확장 상세: `extension/README.md`
 
 ## 포함된 글꼴
 

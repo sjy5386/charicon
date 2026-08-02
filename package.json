@@ -10,9 +10,13 @@
     "deploy": "gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview",
+    "extension:install": "npm install --prefix extension",
+    "extension:icons": "npm run icons --prefix extension",
     "extension:build": "npm run build --prefix extension",
+    "extension:build:prod": "npm run build:prod --prefix extension",
     "extension:watch": "npm run watch --prefix extension",
-    "extension:install": "npm install --prefix extension"
+    "extension:zip": "npm run zip --prefix extension",
+    "extension:zip:dev": "npm run zip:dev --prefix extension"
   },
   "dependencies": {
     "emoji-regex": "^10.6.0",

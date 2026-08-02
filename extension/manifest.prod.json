@@ -1,0 +1,17 @@
+{
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.github.io/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "host_permissions": [
+    "https://*.github.io/*",
+    "https://slack.com/*",
+    "https://*.slack.com/*"
+  ]
+}
