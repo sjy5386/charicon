@@ -28,13 +28,14 @@ const drawPreviewEmojiToCanvas = (ch: string, size = 64): HTMLCanvasElement => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return canvas
 
-    const radius = size * (4 / 22)
+    // Keep ratios in sync with .slack-preview-emoji (32px jumbo, 28px type, 4px radius)
+    const radius = size * (4 / 32)
     ctx.fillStyle = colorForChar(ch)
     ctx.beginPath()
     ctx.roundRect(0, 0, size, size, radius)
     ctx.fill()
 
-    const fontSize = size * (14 / 22)
+    const fontSize = size * (28 / 32)
     ctx.fillStyle = 'white'
     ctx.font = `${fontSize}px ChosunGs, Gungsuhche, sans-serif`
     ctx.textAlign = 'center'
@@ -58,7 +59,7 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
         }
 
         // Wait for preview font so the favicon matches the on-page emoji
-        document.fonts.load(`14px ChosunGs`).then(apply, apply)
+        document.fonts.load(`28px ChosunGs`).then(apply, apply)
     }, [text])
 
     const handleCopy = () => {

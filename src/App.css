@@ -85,12 +85,12 @@ button:disabled:hover {
 
 .slack-preview {
   max-width: 100%;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   text-align: center;
-  line-height: 1.8;
+  line-height: 2;
   word-break: break-word;
   white-space: pre-wrap;
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: var(--text-color);
 }
 
@@ -103,13 +103,15 @@ button:disabled:hover {
   vertical-align: middle;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin: 0 1px;
+  /* Slack emoji-only (jumbo) ≈ 32px; inline with text ≈ 16–22px */
+  width: 32px;
+  height: 32px;
+  margin: 0 2px;
   border-radius: 4px;
   color: white;
   font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
-  font-size: 14px;
+  /* 생성기 기본(~90/100)에 가깝게 박스 대부분을 글자로 채움 */
+  font-size: 28px;
   line-height: 1;
   user-select: none;
 }
