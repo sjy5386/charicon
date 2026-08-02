@@ -155,7 +155,12 @@ const SlackEmojiConverter = ({text, setText}: SlackEmojiConverterProps) => {
                                   value={result}/>
                     </div>
                 </div>
-                <button style={{marginTop: '1.2rem'}} onClick={handleCopy} disabled={!result}>
+                <button
+                    className={copied ? 'is-success' : undefined}
+                    style={{marginTop: '1.2rem'}}
+                    onClick={handleCopy}
+                    disabled={!result}
+                >
                     {copied ? '복사됨' : '복사'}
                 </button>
             </div>

@@ -69,6 +69,14 @@ button:disabled:hover {
   transform: none;
 }
 
+button.is-success {
+  background-color: #2f9e44;
+}
+
+button.is-success:hover {
+  background-color: #2b8a3e;
+}
+
 .canvas-container {
   display: flex;
   flex-direction: column;

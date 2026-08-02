@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useRef} from 'react'
+import {useRef, useState} from 'react'
 import {downloadCanvas, hangulToQwerty} from './charicon.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
 
@@ -54,8 +54,15 @@ const CharIconGenerator = ({
                                x, setX, y, setY,
                            }: CharIconGeneratorProps) => {
     const canvasRef = useRef(null)
+    const [downloaded, setDownloaded] = useState(false)
     const size = 100
     const fonts = ['ChosunGs', 'Gungsuhche', '궁서체']
+
+    const handleDownload = () => {
+        downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')
+        setDownloaded(true)
+        setTimeout(() => setDownloaded(false), 1500)
+    }
 
     return (
         <>
@@ -140,9 +147,12 @@ const CharIconGenerator = ({
                         </div>
                     </div>
                 </div>
-                <button style={{marginTop: '1.2rem'}}
-                        onClick={() => downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')}>이미지
-                    다운로드
+                <button
+                    className={downloaded ? 'is-success' : undefined}
+                    style={{marginTop: '1.2rem'}}
+                    onClick={handleDownload}
+                >
+                    {downloaded ? '다운로드됨' : '이미지 다운로드'}
                 </button>
             </div>
         </>
