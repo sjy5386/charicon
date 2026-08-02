@@ -283,3 +283,35 @@ button:hover {
 button:active {
   transform: translateY(0);
 }
+
+.gradient-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gradient-toggle button {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 0;
+  background: transparent;
+  color: var(--label-color);
+  line-height: 1.2;
+}
+
+.gradient-toggle button + button {
+  border-left: 1px solid var(--border-color);
+}
+
+.gradient-toggle button:hover {
+  background: transparent;
+  color: var(--text-color);
+  transform: none;
+}
+
+.gradient-toggle button[aria-pressed='true'] {
+  background: #646cff;
+  color: #fff;
+}

@@ -28,6 +28,19 @@ export interface CharIconGeneratorProps {
     setY: React.Dispatch<React.SetStateAction<number>>;
 }
 
+const GradientToggle = ({
+                            value,
+                            onChange,
+                        }: {
+    value: boolean
+    onChange: (gradient: boolean) => void
+}) => (
+    <div className="gradient-toggle" role="group" aria-label="색상 모드">
+        <button type="button" aria-pressed={!value} onClick={() => onChange(false)}>단색</button>
+        <button type="button" aria-pressed={value} onClick={() => onChange(true)}>그라데이션</button>
+    </div>
+)
+
 const CharIconGenerator = ({
                                character, setCharacter,
                                bgIsGradient, setBgIsGradient,
@@ -66,17 +79,15 @@ const CharIconGenerator = ({
                     <div className="input-row">
                         <div className="input-item">
                             <label>배경색</label>
-                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                                <input type="checkbox" checked={bgIsGradient}
-                                       onChange={(e) => {
-                                           const checked = e.target.checked;
-                                           setBgIsGradient(checked);
-                                           if (checked) {
-                                               setBgGradient(prev => ({...prev, start: backgroundColor}));
-                                           }
-                                       }}/>
-                                <span style={{fontSize: '12px'}}>그라데이션</span>
-                            </div>
+                            <GradientToggle
+                                value={bgIsGradient}
+                                onChange={(checked) => {
+                                    setBgIsGradient(checked)
+                                    if (checked) {
+                                        setBgGradient(prev => ({...prev, start: backgroundColor}))
+                                    }
+                                }}
+                            />
                             {bgIsGradient ? (
                                 <div style={{display: 'flex', gap: '4px'}}>
                                     <input type="color" value={bgGradient.start}
@@ -91,17 +102,15 @@ const CharIconGenerator = ({
                         </div>
                         <div className="input-item">
                             <label>글자색</label>
-                            <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
-                                <input type="checkbox" checked={colorIsGradient}
-                                       onChange={(e) => {
-                                           const checked = e.target.checked;
-                                           setColorIsGradient(checked);
-                                           if (checked) {
-                                               setColorGradient(prev => ({...prev, start: color}));
-                                           }
-                                       }}/>
-                                <span style={{fontSize: '12px'}}>그라데이션</span>
-                            </div>
+                            <GradientToggle
+                                value={colorIsGradient}
+                                onChange={(checked) => {
+                                    setColorIsGradient(checked)
+                                    if (checked) {
+                                        setColorGradient(prev => ({...prev, start: color}))
+                                    }
+                                }}
+                            />
                             {colorIsGradient ? (
                                 <div style={{display: 'flex', gap: '4px'}}>
                                     <input type="color" value={colorGradient.start}
