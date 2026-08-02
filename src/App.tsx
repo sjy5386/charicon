@@ -12,6 +12,7 @@ import {
     useOutletContext,
 } from 'react-router-dom'
 import './App.css'
+import {colorForChar, toHexColor} from './charicon.ts'
 import CharIconGenerator from './CharIconGenerator.tsx'
 import SlackEmojiConverter from './SlackEmojiConverter.tsx'
 import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
@@ -33,6 +34,8 @@ type AppOutletContext = {
     state: AppUrlState
     setField: <K extends keyof AppUrlState>(key: K) => (value: SetStateAction<AppUrlState[K]>) => void
     slack: ReturnType<typeof useSlackExtension>
+    /** Jump to generator with this character pre-filled (e.g. missing emoji from converter). */
+    openGeneratorWithCharacter: (character: string) => void
 }
 
 function useOutletApp() {
@@ -92,6 +95,29 @@ function AppLayout() {
         )
     }
 
+    const openGeneratorWithCharacter = (character: string) => {
+        const ch = [...character][0] ?? ''
+        if (!ch) return
+        // Match converter local preview: solid bg from colorForChar, white glyph
+        const bgHex = toHexColor(colorForChar(ch))
+        const next: AppUrlState = {
+            ...state,
+            route: 'generator',
+            character: ch,
+            backgroundColor: bgHex,
+            color: '#ffffff',
+            bgIsGradient: false,
+            colorIsGradient: false,
+            bgGradient: {...state.bgGradient, start: bgHex},
+            colorGradient: {...state.colorGradient, start: '#ffffff'},
+        }
+        setState(next)
+        navigate(
+            {pathname: pathForRoute('generator'), search: searchStringForState(next)},
+            {replace: false},
+        )
+    }
+
     return (
         <div className="container">
             <SlackStatusBadge slack={slack}/>
@@ -124,7 +150,9 @@ function AppLayout() {
                 </NavLink>
             </div>
 
-            <Outlet context={{state, setField, slack} satisfies AppOutletContext}/>
+            <Outlet
+                context={{state, setField, slack, openGeneratorWithCharacter} satisfies AppOutletContext}
+            />
         </div>
     )
 }
@@ -150,12 +178,13 @@ function GeneratorPage() {
 }
 
 function ConverterPage() {
-    const {state, setField, slack} = useOutletApp()
+    const {state, setField, slack, openGeneratorWithCharacter} = useOutletApp()
     return (
         <SlackEmojiConverter
             text={state.converterText}
             setText={setField('converterText')}
             slack={slack}
+            onCreateCharacter={openGeneratorWithCharacter}
         />
     )
 }

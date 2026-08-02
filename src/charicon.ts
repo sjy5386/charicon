@@ -11,6 +11,23 @@ export const colorForChar = (ch: string): string => {
     return color
 }
 
+/** Convert `rgb(r, g, b)` (or pass through #hex) for `<input type="color">`. */
+export const toHexColor = (color: string): string => {
+    if (color.startsWith('#') && (color.length === 7 || color.length === 4)) {
+        if (color.length === 4) {
+            const r = color[1]!
+            const g = color[2]!
+            const b = color[3]!
+            return `#${r}${r}${g}${g}${b}${b}`
+        }
+        return color
+    }
+    const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+    if (!m) return '#000000'
+    const hex = (n: string) => Number(n).toString(16).padStart(2, '0')
+    return `#${hex(m[1]!)}${hex(m[2]!)}${hex(m[3]!)}`
+}
+
 export const downloadCanvas = (canvas: HTMLCanvasElement | null, filename: string) => {
     if (canvas) {
         const dataURL = canvas.toDataURL('image/png');

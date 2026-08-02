@@ -14,6 +14,8 @@ export interface SlackEmojiConverterProps {
     text: string
     setText: React.Dispatch<React.SetStateAction<string>>
     slack: SlackExtensionState
+    /** Open generator with this hangul character (missing workspace emoji). */
+    onCreateCharacter?: (character: string) => void
 }
 
 const isHangul = (ch: string) => {
@@ -87,7 +89,12 @@ const drawPreviewEmojiToCanvas = (
     return canvas
 }
 
-const SlackEmojiConverter = ({text, setText, slack}: SlackEmojiConverterProps) => {
+const SlackEmojiConverter = ({
+    text,
+    setText,
+    slack,
+    onCreateCharacter,
+}: SlackEmojiConverterProps) => {
     const [copied, setCopied] = useState(false)
     const [composing, setComposing] = useState(false)
     const targetJumbo = isEmojiOnlyMessage(text)
@@ -159,6 +166,28 @@ const SlackEmojiConverter = ({text, setText, slack}: SlackEmojiConverterProps) =
                                 >
                                     <img src={realUrl} alt={`:${name}:`} draggable={false}/>
                                 </span>
+                            )
+                        }
+
+                        const canCreate =
+                            slackReady &&
+                            !slack.emojiLoading &&
+                            !slack.emojiError &&
+                            !!onCreateCharacter
+
+                        if (canCreate) {
+                            return (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    className="slack-preview-emoji is-missing is-clickable"
+                                    style={{backgroundColor: colorForChar(ch)}}
+                                    title={`미등록 :${name}: — 클릭하면 생성기로 이동`}
+                                    aria-label={`${ch} 미등록. 생성기에서 만들기`}
+                                    onClick={() => onCreateCharacter(ch)}
+                                >
+                                    {ch}
+                                </button>
                             )
                         }
 
