@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Charicon for Slack"
+  },
+  "extDescription": {
+    "message": "글자티콘을 Slack 워크스페이스에 등록하고 실제 커스텀 이모지로 미리봅니다."
+  }
+}

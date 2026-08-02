@@ -14,6 +14,8 @@ import {
 import './App.css'
 import CharIconGenerator from './CharIconGenerator.tsx'
 import SlackEmojiConverter from './SlackEmojiConverter.tsx'
+import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
+import {useSlackExtension} from './slack/useSlackExtension.ts'
 import {
     applyLocationToState,
     pathForRoute,
@@ -30,6 +32,7 @@ const PAGE_TITLES: Record<AppRoute, string> = {
 type AppOutletContext = {
     state: AppUrlState
     setField: <K extends keyof AppUrlState>(key: K) => (value: SetStateAction<AppUrlState[K]>) => void
+    slack: ReturnType<typeof useSlackExtension>
 }
 
 function useOutletApp() {
@@ -40,6 +43,7 @@ function AppLayout() {
     const location = useLocation()
     const navigate = useNavigate()
     const navigationType = useNavigationType()
+    const slack = useSlackExtension()
 
     const [state, setState] = useState<AppUrlState>(() =>
         applyLocationToState(undefined, location.pathname, location.search),
@@ -90,6 +94,7 @@ function AppLayout() {
 
     return (
         <div className="container">
+            <SlackStatusBadge slack={slack}/>
             <div className="tab-bar">
                 <NavLink
                     to={{
@@ -119,7 +124,7 @@ function AppLayout() {
                 </NavLink>
             </div>
 
-            <Outlet context={{state, setField} satisfies AppOutletContext}/>
+            <Outlet context={{state, setField, slack} satisfies AppOutletContext}/>
         </div>
     )
 }

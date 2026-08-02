@@ -21,6 +21,45 @@ npm run dev
 npm run build
 ```
 
+## Slack 브라우저 확장 (MVP)
+
+백엔드 없이 Slack 워크스페이스에 이모지를 등록·미리보기하려면 확장이 필요합니다.
+Chrome / Firefox (MV3) 를 지원합니다.
+
+### 빌드
+
+```shell
+npm run extension:install   # 최초 1회
+npm run extension:build     # → extension/dist
+```
+
+개발 중 감시:
+
+```shell
+npm run extension:watch
+```
+
+### 로드
+
+**Chrome**
+
+1. `chrome://extensions`
+2. 개발자 모드 ON
+3. "압축해제된 확장 프로그램을 로드합니다" → `extension/dist` 선택
+
+**Firefox**
+
+1. `about:debugging#/runtime/this-firefox`
+2. "임시 부가 기능 로드" → `extension/dist/manifest.json` 선택
+
+### 확인
+
+1. `npm run dev` 로 웹 실행
+2. 상단 배지가 **확장 연결됨** 이면 Step 1(PING) 성공
+3. 팀 목록·등록·실미리보기는 이후 단계에서 연결
+
+프로토콜 공유 코드: `shared/protocol.ts`
+
 ## 포함된 글꼴
 
 - [조선궁서체](https://event.chosun.com/100/100font.html)
