@@ -328,6 +328,25 @@ button.is-success:hover {
   color: var(--label-color);
 }
 
+.generator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 1.2rem;
+}
+
+.generator-actions button {
+  margin: 0;
+}
+
+.generator-register-error {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #fa5252;
+  line-height: 1.4;
+}
+
 canvas {
   box-shadow: 0 10px 30px var(--shadow-color);
   border-radius: 8px;

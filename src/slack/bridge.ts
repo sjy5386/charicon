@@ -143,7 +143,7 @@ export async function listEmoji(
 
 export async function registerEmoji(
     payload: RegisterEmojiPayload,
-    timeoutMs = 30000,
+    timeoutMs = 60000,
 ): Promise<RegisterEmojiResult> {
     try {
         const res = await callBridge<RegisterEmojiResult & {requestId: string}>(

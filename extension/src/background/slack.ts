@@ -965,10 +965,463 @@ export async function listEmoji(teamdomain: string): Promise<ListEmojiResult> {
     return pending
 }
 
+// --- emoji.add (Step 5) ---
+
+type PageRegisterResult =
+    | {ok: true}
+    | {ok: false; error: string}
+
+function mapEmojiAddError(err: string): string {
+    switch (err) {
+        case 'error_name_taken':
+        case 'name_taken':
+            return 'emoji_exists'
+        case 'error_invalid_name':
+        case 'invalid_name':
+            return 'invalid_name'
+        case 'error_bad_image':
+        case 'bad_image':
+        case 'resized_but_still_too_large':
+            return 'invalid_image'
+        case 'no_permission':
+        case 'not_allowed_token_type':
+        case 'restricted_action':
+            return 'no_permission'
+        default:
+            return err || 'unknown'
+    }
+}
+
+function isValidEmojiName(name: string): boolean {
+    return /^[a-z0-9][a-z0-9_-]{0,99}$/.test(name)
+}
+
+/**
+ * MAIN-world: start emoji.add (self-contained; no outer consts).
+ * Poll with pagePollRegisterJob.
+ */
+function pageStartRegisterJob(
+    teamdomainHint: string,
+    name: string,
+    imageDataUrl: string,
+    maxWaitMs: number,
+): boolean {
+    const jobKey = '__chariconRegisterJob'
+    const g = window as unknown as Record<
+        string,
+        {id: string; done: boolean; result: PageRegisterResult | null} | undefined
+    >
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const waitBudget = Math.max(500, Math.min(maxWaitMs || 10000, 20000))
+    g[jobKey] = {id: jobId, done: false, result: null}
+
+    const hint = (teamdomainHint || '').toLowerCase()
+    const emojiName = (name || '').toLowerCase()
+
+    void (async () => {
+        const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+        type SlackWin = {
+            boot_data?: {api_token?: string; domain?: string; team_url?: string}
+            TS?: {
+                boot_data?: {api_token?: string; domain?: string; team_url?: string}
+                model?: {
+                    api_token?: string
+                    team?: {domain?: string; url?: string}
+                }
+                tokens?: {api?: string}
+            }
+        }
+
+        const win = () => window as unknown as SlackWin
+
+        const getToken = (): string | null => {
+            const ww = win()
+            for (const c of [
+                ww.boot_data?.api_token,
+                ww.TS?.boot_data?.api_token,
+                ww.TS?.model?.api_token,
+                ww.TS?.tokens?.api,
+            ]) {
+                if (typeof c === 'string' && c.length >= 8) return c
+            }
+            const html = document.documentElement.innerHTML
+            const patterns = [
+                /api_token["']?\s*:\s*["']([^"']{8,})["']/,
+                /"token"\s*:\s*"(xox[a-z]-[^"]+)"/,
+                /name=["']token["'][^>]*value=["']([^"']{8,})["']/,
+            ]
+            for (const re of patterns) {
+                const m = html.match(re)
+                if (m?.[1] && m[1].length >= 8) return m[1]
+            }
+            return null
+        }
+
+        const finish = (result: PageRegisterResult) => {
+            const cur = g[jobKey]
+            if (!cur || cur.id !== jobId) return
+            g[jobKey] = {id: jobId, done: true, result}
+        }
+
+        try {
+            if (!/^[a-z0-9][a-z0-9_-]{0,99}$/.test(emojiName)) {
+                finish({ok: false, error: 'invalid_name'})
+                return
+            }
+            if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
+                finish({ok: false, error: 'invalid_image'})
+                return
+            }
+
+            const deadline = Date.now() + waitBudget
+            let token: string | null = null
+            while (Date.now() < deadline) {
+                token = getToken()
+                if (token) break
+                await sleep(200)
+            }
+            if (!token) {
+                finish({ok: false, error: 'token_not_found'})
+                return
+            }
+
+            const domain = hint
+            if (!domain) {
+                finish({ok: false, error: 'team_not_found'})
+                return
+            }
+
+            let blob: Blob
+            try {
+                const imgRes = await fetch(imageDataUrl)
+                blob = await imgRes.blob()
+            } catch {
+                finish({ok: false, error: 'invalid_image'})
+                return
+            }
+
+            const urls = [
+                `https://${domain}.slack.com/api/emoji.add`,
+                `${location.origin}/api/emoji.add`,
+                'https://slack.com/api/emoji.add',
+            ]
+
+            let lastError = 'network'
+            for (const url of urls) {
+                try {
+                    const fd = new FormData()
+                    fd.append('mode', 'data')
+                    fd.append('name', emojiName)
+                    fd.append('image', blob, `${emojiName}.png`)
+                    fd.append('token', token)
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: fd,
+                    })
+                    if (!res.ok) {
+                        lastError = `http_${res.status}`
+                        continue
+                    }
+                    const json = (await res.json()) as {ok?: boolean; error?: string}
+                    if (json.ok) {
+                        finish({ok: true})
+                        return
+                    }
+                    if (json.error) {
+                        lastError = String(json.error)
+                        // don't retry name_taken on other URLs
+                        if (
+                            json.error === 'error_name_taken' ||
+                            json.error === 'name_taken'
+                        ) {
+                            break
+                        }
+                    }
+                } catch {
+                    /* next */
+                }
+            }
+
+            // map common errors inline (no outer helpers)
+            let mapped = lastError
+            if (lastError === 'error_name_taken' || lastError === 'name_taken') {
+                mapped = 'emoji_exists'
+            } else if (
+                lastError === 'error_invalid_name' ||
+                lastError === 'invalid_name'
+            ) {
+                mapped = 'invalid_name'
+            } else if (
+                lastError === 'error_bad_image' ||
+                lastError === 'bad_image'
+            ) {
+                mapped = 'invalid_image'
+            } else if (
+                lastError === 'no_permission' ||
+                lastError === 'restricted_action'
+            ) {
+                mapped = 'no_permission'
+            }
+            finish({ok: false, error: mapped})
+        } catch (e) {
+            finish({
+                ok: false,
+                error: e instanceof Error ? e.message : 'unknown',
+            })
+        }
+    })()
+
+    return true
+}
+
+function pagePollRegisterJob(): PageRegisterResult | 'pending' | null {
+    const jobKey = '__chariconRegisterJob'
+    const g = window as unknown as Record<
+        string,
+        {id: string; done: boolean; result: PageRegisterResult | null} | undefined
+    >
+    const job = g[jobKey]
+    if (!job) return null
+    if (!job.done) return 'pending'
+    return job.result
+}
+
+async function executePageRegister(
+    tabId: number,
+    teamdomain: string,
+    name: string,
+    imageDataUrl: string,
+    maxWaitMs: number,
+): Promise<PageRegisterResult | null> {
+    const api = getExtApi()
+    if (!api.scripting?.executeScript) return null
+
+    const start = async (world: 'MAIN' | 'ISOLATED') => {
+        await api.scripting.executeScript({
+            target: {tabId},
+            world,
+            func: pageStartRegisterJob,
+            args: [teamdomain, name, imageDataUrl, maxWaitMs],
+        })
+    }
+
+    const poll = async (world: 'MAIN' | 'ISOLATED') => {
+        const results = await api.scripting.executeScript({
+            target: {tabId},
+            world,
+            func: pagePollRegisterJob,
+        })
+        return results?.[0]?.result as PageRegisterResult | 'pending' | null | undefined
+    }
+
+    let world: 'MAIN' | 'ISOLATED' = 'MAIN'
+    try {
+        await start('MAIN')
+    } catch {
+        world = 'ISOLATED'
+        try {
+            await start('ISOLATED')
+        } catch {
+            return null
+        }
+    }
+
+    const deadline = Date.now() + maxWaitMs + 10000
+    while (Date.now() < deadline) {
+        try {
+            const val = await poll(world)
+            if (val === 'pending' || val == null) {
+                await new Promise((r) => setTimeout(r, 250))
+                continue
+            }
+            return val
+        } catch {
+            await new Promise((r) => setTimeout(r, 250))
+        }
+    }
+    return {ok: false, error: 'timeout'}
+}
+
+async function registerEmojiViaFetch(
+    payload: RegisterEmojiPayload,
+): Promise<RegisterEmojiResult> {
+    const domain = payload.teamdomain.trim().toLowerCase()
+    const name = payload.name.trim().toLowerCase()
+    if (!isValidEmojiName(name)) return {ok: false, error: 'invalid_name'}
+    if (!payload.imageDataUrl.startsWith('data:image/')) {
+        return {ok: false, error: 'invalid_image'}
+    }
+
+    const html = await fetchText(
+        `https://${domain}.slack.com/customize/emoji`,
+        8000,
+    )
+    if (!html) return {ok: false, error: 'token_not_found'}
+    const token = extractApiToken(html)
+    if (!token) return {ok: false, error: 'token_not_found'}
+
+    let blob: Blob
+    try {
+        blob = await (await fetch(payload.imageDataUrl)).blob()
+    } catch {
+        return {ok: false, error: 'invalid_image'}
+    }
+
+    const fd = new FormData()
+    fd.append('mode', 'data')
+    fd.append('name', name)
+    fd.append('image', blob, `${name}.png`)
+    fd.append('token', token)
+
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 15000)
+    try {
+        const res = await fetch(`https://${domain}.slack.com/api/emoji.add`, {
+            method: 'POST',
+            credentials: 'include',
+            body: fd,
+            signal: ctrl.signal,
+        })
+        if (!res.ok) return {ok: false, error: 'network'}
+        const json = (await res.json()) as {ok?: boolean; error?: string}
+        if (json.ok) return {ok: true}
+        return {ok: false, error: mapEmojiAddError(String(json.error || 'unknown'))}
+    } catch {
+        return {ok: false, error: 'network'}
+    } finally {
+        clearTimeout(timer)
+    }
+}
+
+async function registerEmojiViaOpenTabs(
+    payload: RegisterEmojiPayload,
+): Promise<PageRegisterResult | null> {
+    const api = getExtApi()
+    if (!api.tabs?.query) return null
+    const domain = payload.teamdomain.toLowerCase()
+    let tabs: chrome.tabs.Tab[] = []
+    try {
+        tabs = await api.tabs.query({})
+    } catch {
+        return null
+    }
+
+    const ranked = tabs
+        .filter((t) => t.id != null && scoreSlackTab(t.url, domain) > 0)
+        .sort(
+            (a, b) => scoreSlackTab(b.url, domain) - scoreSlackTab(a.url, domain),
+        )
+        .slice(0, 1)
+
+    for (const tab of ranked) {
+        if (tab.id == null) continue
+        const result = await executePageRegister(
+            tab.id,
+            domain,
+            payload.name,
+            payload.imageDataUrl,
+            12000,
+        )
+        if (result) return result
+    }
+    return null
+}
+
+async function registerEmojiViaTempTab(
+    payload: RegisterEmojiPayload,
+): Promise<PageRegisterResult | null> {
+    const api = getExtApi()
+    if (!api.tabs?.create) return null
+    const domain = payload.teamdomain.toLowerCase()
+    const url = `https://${domain}.slack.com/customize/emoji`
+    let tabId: number | undefined
+    try {
+        const tab = await api.tabs.create({url, active: false})
+        tabId = tab.id
+        if (tabId == null) return null
+        try {
+            await waitForTabComplete(tabId)
+        } catch {
+            /* continue */
+        }
+        await new Promise((r) => setTimeout(r, 1200))
+        return await executePageRegister(
+            tabId,
+            domain,
+            payload.name,
+            payload.imageDataUrl,
+            14000,
+        )
+    } catch {
+        return null
+    } finally {
+        if (tabId != null) {
+            try {
+                await api.tabs.remove(tabId)
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+}
+
 export async function registerEmoji(
     payload: RegisterEmojiPayload,
 ): Promise<RegisterEmojiResult> {
-    void payload
-    // TODO(step-5): emoji.add via session token
-    return {ok: false, error: 'unknown'}
+    const domain = (payload.teamdomain || '').trim().toLowerCase()
+    const name = (payload.name || '').trim().toLowerCase()
+    if (!domain || !/^[a-z0-9][a-z0-9-]*$/.test(domain)) {
+        return {ok: false, error: 'team_not_found'}
+    }
+    if (!isValidEmojiName(name)) {
+        return {ok: false, error: 'invalid_name'}
+    }
+    if (!payload.imageDataUrl?.startsWith('data:image/')) {
+        return {ok: false, error: 'invalid_image'}
+    }
+
+    const normalized: RegisterEmojiPayload = {
+        teamdomain: domain,
+        name,
+        imageDataUrl: payload.imageDataUrl,
+    }
+
+    // 1) Open Slack tab (Chrome-friendly)
+    const fromOpen = await registerEmojiViaOpenTabs(normalized)
+    if (fromOpen?.ok) {
+        invalidateEmojiCache(domain)
+        return {ok: true}
+    }
+    if (fromOpen && !fromOpen.ok && fromOpen.error === 'emoji_exists') {
+        invalidateEmojiCache(domain)
+        return {ok: false, error: 'emoji_exists'}
+    }
+
+    // 2) Background fetch (Firefox)
+    const viaFetch = await registerEmojiViaFetch(normalized)
+    if (viaFetch.ok) {
+        invalidateEmojiCache(domain)
+        return {ok: true}
+    }
+    if (viaFetch.error === 'emoji_exists') {
+        invalidateEmojiCache(domain)
+        return viaFetch
+    }
+
+    // 3) Temp customize tab
+    const fromTemp = await registerEmojiViaTempTab(normalized)
+    if (fromTemp?.ok) {
+        invalidateEmojiCache(domain)
+        return {ok: true}
+    }
+
+    const err =
+        fromTemp?.error ||
+        fromOpen?.error ||
+        viaFetch.error ||
+        'unknown'
+    if (err === 'emoji_exists') invalidateEmojiCache(domain)
+    return {ok: false, error: err}
 }

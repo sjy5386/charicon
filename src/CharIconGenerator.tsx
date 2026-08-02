@@ -2,6 +2,7 @@ import * as React from 'react'
 import {useRef, useState} from 'react'
 import {downloadCanvas, hangulToQwerty} from './charicon.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
+import {registerEmoji} from './slack/bridge'
 import type {SlackExtensionState} from './slack/useSlackExtension'
 
 export interface CharIconGeneratorProps {
@@ -43,6 +44,29 @@ const GradientToggle = ({
     </div>
 )
 
+function registerErrorMessage(code: string): string {
+    switch (code) {
+        case 'emoji_exists':
+            return '같은 이름의 이모지가 이미 있습니다.'
+        case 'invalid_name':
+            return '이모지 이름이 올바르지 않습니다.'
+        case 'invalid_image':
+            return '이미지 형식을 확인하세요.'
+        case 'no_permission':
+            return '이모지 추가 권한이 없습니다. 워크스페이스 설정을 확인하세요.'
+        case 'token_not_found':
+            return 'Slack 세션을 찾지 못했습니다. Slack 탭을 연 뒤 다시 시도하세요.'
+        case 'not_connected':
+            return '확장이 연결되지 않았습니다.'
+        case 'timeout':
+            return '응답이 지연됩니다. 잠시 후 다시 시도하세요.'
+        case 'network':
+            return '네트워크 오류가 발생했습니다.'
+        default:
+            return `등록에 실패했습니다 (${code})`
+    }
+}
+
 const CharIconGenerator = ({
                                character, setCharacter,
                                bgIsGradient, setBgIsGradient,
@@ -56,8 +80,11 @@ const CharIconGenerator = ({
                                x, setX, y, setY,
                                slack,
                            }: CharIconGeneratorProps) => {
-    const canvasRef = useRef(null)
+    const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const [downloaded, setDownloaded] = useState(false)
+    const [registering, setRegistering] = useState(false)
+    const [registerOk, setRegisterOk] = useState(false)
+    const [registerError, setRegisterError] = useState<string | null>(null)
     const size = 100
     const fonts = ['ChosunGs', 'Gungsuhche', '궁서체']
 
@@ -65,11 +92,43 @@ const CharIconGenerator = ({
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
     const registeredUrl = emojiName && slackReady ? slack.emoji[emojiName] : undefined
     const registrationKnown = slackReady && !slack.emojiLoading && !slack.emojiError && !!emojiName
+    const canRegister =
+        slackReady &&
+        !!emojiName &&
+        registrationKnown &&
+        !registeredUrl &&
+        !registering
 
     const handleDownload = () => {
         downloadCanvas(canvasRef.current, hangulToQwerty(character) + '.png')
         setDownloaded(true)
         setTimeout(() => setDownloaded(false), 1500)
+    }
+
+    const handleRegister = async () => {
+        if (!canvasRef.current || !slack.teamdomain || !emojiName || !canRegister) return
+        setRegistering(true)
+        setRegisterError(null)
+        setRegisterOk(false)
+        try {
+            const imageDataUrl = canvasRef.current.toDataURL('image/png')
+            const result = await registerEmoji({
+                teamdomain: slack.teamdomain,
+                name: emojiName,
+                imageDataUrl,
+            })
+            if (!result.ok) {
+                setRegisterError(registerErrorMessage(result.error))
+                return
+            }
+            setRegisterOk(true)
+            await slack.refreshEmoji()
+            setTimeout(() => setRegisterOk(false), 2000)
+        } catch {
+            setRegisterError(registerErrorMessage('unknown'))
+        } finally {
+            setRegistering(false)
+        }
     }
 
     return (
@@ -125,7 +184,10 @@ const CharIconGenerator = ({
                     <div className="input-item main-input">
                         <label>글자</label>
                         <input type="text" maxLength={1} value={character}
-                               onChange={(e) => setCharacter(e.target.value)}/>
+                               onChange={(e) => {
+                                   setCharacter(e.target.value)
+                                   setRegisterError(null)
+                               }}/>
                     </div>
                     <div className="input-row">
                         <div className="input-item">
@@ -191,13 +253,36 @@ const CharIconGenerator = ({
                         </div>
                     </div>
                 </div>
-                <button
-                    className={downloaded ? 'is-success' : undefined}
-                    style={{marginTop: '1.2rem'}}
-                    onClick={handleDownload}
-                >
-                    {downloaded ? '다운로드됨' : '이미지 다운로드'}
-                </button>
+                <div className="generator-actions">
+                    {slackReady && (
+                        <button
+                            type="button"
+                            className={registerOk ? 'is-success' : undefined}
+                            disabled={!canRegister}
+                            onClick={() => void handleRegister()}
+                        >
+                            {registering
+                                ? '등록 중…'
+                                : registerOk
+                                  ? '등록됨'
+                                  : registeredUrl
+                                    ? '이미 등록됨'
+                                    : 'Slack에 등록'}
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className={downloaded ? 'is-success' : undefined}
+                        onClick={handleDownload}
+                    >
+                        {downloaded ? '다운로드됨' : '이미지 다운로드'}
+                    </button>
+                </div>
+                {registerError && (
+                    <p className="generator-register-error" role="alert">
+                        {registerError}
+                    </p>
+                )}
             </div>
         </>
     )
