@@ -104,11 +104,16 @@ const SlackStatusBadge = ({slack}: Props) => {
                     {status === 'missing' && (
                         <div className="slack-dock__body">
                             <p className="slack-dock__line">
-                                확장이 없습니다. 설치하면 워크스페이스에 바로 등록·미리보기할 수 있어요.
+                                브라우저 확장이 없습니다. 설치하면 워크스페이스에 바로 등록·미리보기할 수 있어요.
                             </p>
-                            <p className="slack-dock__line muted">
-                                로컬: <code>extension/dist</code> 를 Chrome/Firefox에 로드
-                            </p>
+                            <a
+                                className="slack-dock__store-btn"
+                                href="https://addons.mozilla.org/firefox/addon/charicon-for-slack/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Firefox에서 설치
+                            </a>
                         </div>
                     )}
 
