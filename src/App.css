@@ -350,7 +350,8 @@ button.is-success:hover {
   align-items: center;
   justify-content: center;
   color: white;
-  font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
+  /* Default stack; per-glyph family may be set inline when ChosunGs misses a glyph */
+  font-family: 'ChosunGs', 'Gungsuhche';
   line-height: 1;
   user-select: none;
 }
@@ -405,7 +406,7 @@ button.slack-preview-emoji {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
+  font-family: 'ChosunGs', 'Gungsuhche';
   line-height: 1;
 }
 
@@ -546,7 +547,7 @@ button.slack-preview-emoji.is-picker-open {
   border-radius: 3px;
   background: var(--border-color);
   color: var(--text-color);
-  font-family: 'ChosunGs', 'Gungsuhche', sans-serif;
+  font-family: 'ChosunGs', 'Gungsuhche';
   font-size: 0.85rem;
   flex-shrink: 0;
   opacity: 0.75;

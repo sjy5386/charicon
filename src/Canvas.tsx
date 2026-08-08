@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {useEffect, useState} from 'react'
 import {setFaviconFromCanvas} from './charicon.ts'
+import {ensureWebFontsLoaded, fillTextWithFontFallback} from './fontFallback.ts'
 import './fonts.css'
 
 export interface Gradient {
@@ -70,16 +71,19 @@ const Canvas = ({
             ctx.fillStyle = getFillStyle(backgroundColor, width, height);
             ctx.fillRect(0, 0, width, height);
 
-            // 글자 쓰기
-            document.fonts.load(`${fontSize}px ${font}`).then(() => {
+            // 글자 쓰기 (글리프 없으면 번들 웹폰트로 fallback)
+            void Promise.all([
+                ensureWebFontsLoaded(fontSize),
+                document.fonts.load(`${fontSize}px "${font}"`).catch(() => undefined),
+            ]).then(() => {
                 if (cancelled) return;
                 // 배경 다시 칠한 뒤 글자 (비동기 레이스 방지)
                 ctx.fillStyle = getFillStyle(backgroundColor, width, height);
                 ctx.fillRect(0, 0, width, height);
-                ctx.font = `${fontSize}px ${font}`;
                 ctx.fillStyle = getFillStyle(color, width, height);
-                ctx.textBaseline = 'alphabetic'; // 베이스라인 명시
-                ctx.fillText(character, x, y);
+                ctx.textBaseline = 'alphabetic';
+                ctx.textAlign = 'left';
+                fillTextWithFontFallback(ctx, character, x, y, fontSize, font);
                 setFaviconFromCanvas(canvas);
             });
 

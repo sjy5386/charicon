@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {useRef, useState} from 'react'
 import {downloadCanvas, hangulToQwerty, resolveHangulWorkspaceEmoji} from './charicon.ts'
+import {cssFontFamilyForChar} from './fontFallback.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
 import {registerEmoji} from './slack/bridge'
 import type {SlackExtensionState} from './slack/useSlackExtension'
@@ -86,7 +87,8 @@ const CharIconGenerator = ({
     const [registerOk, setRegisterOk] = useState(false)
     const [registerError, setRegisterError] = useState<string | null>(null)
     const size = 100
-    const fonts = ['ChosunGs', 'Gungsuhche', '궁서체']
+    // Bundled webfonts only (no OS fonts — look differs by platform)
+    const fonts = ['ChosunGs', 'Gungsuhche']
 
     const emojiName = character ? hangulToQwerty(character) : ''
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
@@ -245,7 +247,15 @@ const CharIconGenerator = ({
                                 draggable={false}
                             />
                         ) : (
-                            <span className="generator-slack-meta__placeholder" aria-hidden>
+                            <span
+                                className="generator-slack-meta__placeholder"
+                                style={
+                                    character
+                                        ? {fontFamily: cssFontFamilyForChar(character, font)}
+                                        : undefined
+                                }
+                                aria-hidden
+                            >
                                 {character}
                             </span>
                         )}

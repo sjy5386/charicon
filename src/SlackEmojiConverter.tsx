@@ -9,6 +9,11 @@ import {
     setFaviconFromDataUrl,
 } from './charicon.ts'
 import {
+    cssFontFamilyForChar,
+    ensureWebFontsLoaded,
+    fillTextWithFontFallback,
+} from './fontFallback.ts'
+import {
     loadNameByCharForWorkspace,
     saveNameByCharForWorkspace,
 } from './slack/nameByCharStorage'
@@ -85,11 +90,17 @@ const drawPreviewEmojiToCanvas = (
 
     const fontSize = size * (font / box)
     ctx.fillStyle = 'white'
-    ctx.font = `${fontSize}px ChosunGs, Gungsuhche, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    // Slight optical center for hangul in square
-    ctx.fillText(ch, size / 2, size / 2 + size * 0.02)
+    // Slight optical center for hangul in square; glyph check → Gungsuhche if needed
+    fillTextWithFontFallback(
+        ctx,
+        ch,
+        size / 2,
+        size / 2 + size * 0.02,
+        fontSize,
+        'ChosunGs',
+    )
     return canvas
 }
 
@@ -111,6 +122,12 @@ const SlackEmojiConverter = ({
     const [nameByChar, setNameByChar] = useState<Record<string, string>>({})
     /** Which hangul index has the variant picker open (UI only). */
     const [pickerIndex, setPickerIndex] = useState<number | null>(null)
+    /** Webfonts ready so glyph probes are reliable for DOM font-family. */
+    const [webFontsReady, setWebFontsReady] = useState(false)
+
+    useEffect(() => {
+        void ensureWebFontsLoaded().then(() => setWebFontsReady(true))
+    }, [])
 
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
     const emojiMap = slack.emoji
@@ -188,7 +205,7 @@ const SlackEmojiConverter = ({
         }
 
         const fontPx = EMOJI_STYLE[emojiMode].font
-        document.fonts.load(`${fontPx}px ChosunGs`).then(apply, apply)
+        void ensureWebFontsLoaded(fontPx).then(apply, apply)
     }, [text, emojiMode, slackReady, emojiMap, nameByChar])
 
     const pickVariant = (character: string, chosen: string) => {
@@ -329,13 +346,21 @@ const SlackEmojiConverter = ({
                             !!onCreateCharacter &&
                             text.length > 0
 
+                        // ChosunGs may have empty glyphs (e.g. 힣) — pick Gungsuhche per char
+                        const glyphFont = webFontsReady
+                            ? cssFontFamilyForChar(ch, 'ChosunGs')
+                            : '"ChosunGs"'
+
                         if (canCreate) {
                             return (
                                 <button
                                     key={i}
                                     type="button"
                                     className="slack-preview-emoji is-missing is-clickable"
-                                    style={{backgroundColor: colorForChar(ch)}}
+                                    style={{
+                                        backgroundColor: colorForChar(ch),
+                                        fontFamily: glyphFont,
+                                    }}
                                     title={`미등록 :${base}: — 클릭하면 생성기로 이동`}
                                     aria-label={`${ch} 미등록. 생성기에서 만들기`}
                                     onClick={() => onCreateCharacter(ch)}
@@ -352,7 +377,10 @@ const SlackEmojiConverter = ({
                                     'slack-preview-emoji',
                                     slackReady && !slack.emojiLoading ? 'is-missing' : '',
                                 ].filter(Boolean).join(' ')}
-                                style={{backgroundColor: colorForChar(ch)}}
+                                style={{
+                                    backgroundColor: colorForChar(ch),
+                                    fontFamily: glyphFont,
+                                }}
                                 title={
                                     slackReady
                                         ? `미등록 :${base}:`
