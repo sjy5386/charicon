@@ -144,19 +144,24 @@ export const cssFontFamilyForChar = (char: string): string =>
     `"${resolveFontForChar(char)}"`
 
 /**
- * Inline style for DOM: family + optional `font-size: N em` optical correction.
- * Parent must set the base font-size (em is relative to that).
+ * Inline style for DOM text: family + optional optical size correction.
+ * Pass `baseFontSizePx` (the CSS pixel size of the element) so scale does not
+ * clobber a same-element `font-size` with a wrong `em` base.
  */
 export const cssFontStyleForChar = (
     char: string,
+    baseFontSizePx?: number,
 ): {fontFamily: string; fontSize?: string} => {
     const {family, scale} = resolveFaceForChar(char)
     if (Math.abs(scale - 1) < 0.01) {
         return {fontFamily: `"${family}"`}
     }
-    // Round for stable CSS and less subpixel jitter
-    const rounded = Math.round(scale * 1000) / 1000
-    return {fontFamily: `"${family}"`, fontSize: `${rounded}em`}
+    if (baseFontSizePx != null && baseFontSizePx > 0) {
+        const px = Math.round(baseFontSizePx * scale * 100) / 100
+        return {fontFamily: `"${family}"`, fontSize: `${px}px`}
+    }
+    // No base size: leave font-size to CSS (family only)
+    return {fontFamily: `"${family}"`}
 }
 
 export const ensureWebFontsLoaded = async (size = 72): Promise<void> => {

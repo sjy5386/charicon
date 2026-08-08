@@ -350,10 +350,17 @@ button.is-success:hover {
   align-items: center;
   justify-content: center;
   color: white;
-  /* Default stack; per-glyph family may be set inline when ChosunGs misses a glyph */
-  font-family: 'ChosunGs', 'Gungsuhche';
   line-height: 1;
   user-select: none;
+}
+
+/* Placeholder while bundled webfonts load (local canvas tiles). */
+.slack-preview-emoji__pending {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--border-color) 80%, transparent);
 }
 
 /* emoji-only (jumbo) ≈ 32px */
@@ -396,17 +403,16 @@ button.is-success:hover {
   outline-offset: 0;
 }
 
-/* Keep ChosunGs from .slack-preview-emoji — do not use `font: inherit` (resets family). */
+/* Image-based tiles — do not use `font: inherit` (resets sizing). */
 button.slack-preview-emoji {
   border: none;
   padding: 0;
   margin: 0;
   color: inherit;
-  background: none; /* solid color comes from inline style */
+  background: none;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  font-family: 'ChosunGs', 'Gungsuhche';
   line-height: 1;
 }
 

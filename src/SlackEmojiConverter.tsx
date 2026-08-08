@@ -9,7 +9,6 @@ import {
     setFaviconFromDataUrl,
 } from './charicon.ts'
 import {
-    cssFontStyleForChar,
     ensureWebFontsLoaded,
     fillTextWithFontFallback,
 } from './fontFallback.ts'
@@ -69,7 +68,7 @@ const EMOJI_STYLE = {
     inline: {box: 20, font: 17, radius: 3},
 } as const
 
-/** Draw the converter preview emoji style onto a canvas for the favicon. */
+/** Draw the converter preview emoji style onto a canvas (favicon + local tiles). */
 const drawPreviewEmojiToCanvas = (
     ch: string,
     mode: keyof typeof EMOJI_STYLE = 'jumbo',
@@ -92,7 +91,7 @@ const drawPreviewEmojiToCanvas = (
     ctx.fillStyle = 'white'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    // Slight optical center for hangul in square; glyph check → Gungsuhche if needed
+    // Slight optical center for hangul; ChosunGs → Gungsuhche + optical scale
     fillTextWithFontFallback(
         ctx,
         ch,
@@ -101,6 +100,23 @@ const drawPreviewEmojiToCanvas = (
         fontSize,
     )
     return canvas
+}
+
+/** mode\0char → data URL (same glyph stack as generator canvas). */
+const localPreviewCache = new Map<string, string>()
+
+const localPreviewDataUrl = (
+    ch: string,
+    mode: keyof typeof EMOJI_STYLE,
+): string => {
+    const key = `${mode}\0${ch}`
+    let url = localPreviewCache.get(key)
+    if (!url) {
+        // Render at 2× for crisp downscale in the 20–32px preview tiles
+        url = drawPreviewEmojiToCanvas(ch, mode, 64).toDataURL('image/png')
+        localPreviewCache.set(key, url)
+    }
+    return url
 }
 
 const SlackEmojiConverter = ({
@@ -337,7 +353,8 @@ const SlackEmojiConverter = ({
                             )
                         }
 
-                        // No base and no allowed alternates → true missing
+                        // No base and no allowed alternates → local canvas tile
+                        // (ChosunGs → Gungsuhche + optical scale; matches favicon/generator)
                         const canCreate =
                             slackReady &&
                             !slack.emojiLoading &&
@@ -345,26 +362,27 @@ const SlackEmojiConverter = ({
                             !!onCreateCharacter &&
                             text.length > 0
 
-                        // ChosunGs → Gungsuhche (+ optical scale) when glyph missing
-                        const glyphStyle = webFontsReady
-                            ? cssFontStyleForChar(ch)
-                            : {fontFamily: '"ChosunGs"'}
+                        const localSrc = webFontsReady
+                            ? localPreviewDataUrl(ch, emojiMode)
+                            : undefined
+                        const localImg = localSrc ? (
+                            <img src={localSrc} alt={ch} draggable={false}/>
+                        ) : (
+                            // Fonts not ready yet — avoid empty ChosunGs .notdef
+                            <span className="slack-preview-emoji__pending" aria-hidden/>
+                        )
 
                         if (canCreate) {
                             return (
                                 <button
                                     key={i}
                                     type="button"
-                                    className="slack-preview-emoji is-missing is-clickable"
-                                    style={{
-                                        backgroundColor: colorForChar(ch),
-                                        ...glyphStyle,
-                                    }}
+                                    className="slack-preview-emoji is-real is-missing is-clickable"
                                     title={`미등록 :${base}: — 클릭하면 생성기로 이동`}
                                     aria-label={`${ch} 미등록. 생성기에서 만들기`}
                                     onClick={() => onCreateCharacter(ch)}
                                 >
-                                    {ch}
+                                    {localImg}
                                 </button>
                             )
                         }
@@ -373,20 +391,16 @@ const SlackEmojiConverter = ({
                             <span
                                 key={i}
                                 className={[
-                                    'slack-preview-emoji',
+                                    'slack-preview-emoji is-real',
                                     slackReady && !slack.emojiLoading ? 'is-missing' : '',
                                 ].filter(Boolean).join(' ')}
-                                style={{
-                                    backgroundColor: colorForChar(ch),
-                                    ...glyphStyle,
-                                }}
                                 title={
                                     slackReady
                                         ? `미등록 :${base}:`
                                         : undefined
                                 }
                             >
-                                {ch}
+                                {localImg}
                             </span>
                         )
                     })}
