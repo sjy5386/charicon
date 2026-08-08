@@ -1,6 +1,11 @@
 import * as React from 'react'
 import {useRef, useState} from 'react'
-import {downloadCanvas, hangulToQwerty, resolveHangulWorkspaceEmoji} from './charicon.ts'
+import {
+    complementaryColor,
+    downloadCanvas,
+    hangulToQwerty,
+    resolveHangulWorkspaceEmoji,
+} from './charicon.ts'
 import {cssFontStyleForChar} from './fontFallback.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
 import {registerEmoji} from './slack/bridge'
@@ -169,14 +174,20 @@ const CharIconGenerator = ({
                                 onChange={(checked) => {
                                     setBgIsGradient(checked)
                                     if (checked) {
-                                        setBgGradient(prev => ({...prev, start: backgroundColor}))
+                                        setBgGradient({
+                                            start: backgroundColor,
+                                            end: complementaryColor(backgroundColor),
+                                        })
                                     }
                                 }}
                             />
                             {bgIsGradient ? (
                                 <div style={{display: 'flex', gap: '4px'}}>
                                     <input type="color" value={bgGradient.start}
-                                           onChange={(e) => setBgGradient({...bgGradient, start: e.target.value})}/>
+                                           onChange={(e) => setBgGradient({
+                                               start: e.target.value,
+                                               end: complementaryColor(e.target.value),
+                                           })}/>
                                     <input type="color" value={bgGradient.end}
                                            onChange={(e) => setBgGradient({...bgGradient, end: e.target.value})}/>
                                 </div>
@@ -192,14 +203,20 @@ const CharIconGenerator = ({
                                 onChange={(checked) => {
                                     setColorIsGradient(checked)
                                     if (checked) {
-                                        setColorGradient(prev => ({...prev, start: color}))
+                                        setColorGradient({
+                                            start: color,
+                                            end: complementaryColor(color),
+                                        })
                                     }
                                 }}
                             />
                             {colorIsGradient ? (
                                 <div style={{display: 'flex', gap: '4px'}}>
                                     <input type="color" value={colorGradient.start}
-                                           onChange={(e) => setColorGradient({...colorGradient, start: e.target.value})}/>
+                                           onChange={(e) => setColorGradient({
+                                               start: e.target.value,
+                                               end: complementaryColor(e.target.value),
+                                           })}/>
                                     <input type="color" value={colorGradient.end}
                                            onChange={(e) => setColorGradient({...colorGradient, end: e.target.value})}/>
                                 </div>

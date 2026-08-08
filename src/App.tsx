@@ -12,7 +12,7 @@ import {
     useOutletContext,
 } from 'react-router-dom'
 import './App.css'
-import {colorForChar, toHexColor} from './charicon.ts'
+import {colorForChar, complementaryColor, toHexColor} from './charicon.ts'
 import CharIconGenerator from './CharIconGenerator.tsx'
 import SlackEmojiConverter from './SlackEmojiConverter.tsx'
 import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
@@ -108,8 +108,8 @@ function AppLayout() {
             color: '#ffffff',
             bgIsGradient: false,
             colorIsGradient: false,
-            bgGradient: {...state.bgGradient, start: bgHex},
-            colorGradient: {...state.colorGradient, start: '#ffffff'},
+            bgGradient: {start: bgHex, end: complementaryColor(bgHex)},
+            colorGradient: {start: '#ffffff', end: complementaryColor('#ffffff')},
         }
         setState(next)
         navigate(

@@ -1,15 +1,4 @@
-export const randomColor = () => `rgb(${Math.floor(Math.random() * 128)}, ${Math.floor(Math.random() * 128)}, ${Math.floor(Math.random() * 128)})`
-
-const charColorCache = new Map<string, string>()
-
-export const colorForChar = (ch: string): string => {
-    let color = charColorCache.get(ch)
-    if (!color) {
-        color = randomColor()
-        charColorCache.set(ch, color)
-    }
-    return color
-}
+const hexByte = (n: number) => n.toString(16).padStart(2, '0')
 
 /** Convert `rgb(r, g, b)` (or pass through #hex) for `<input type="color">`. */
 export const toHexColor = (color: string): string => {
@@ -24,8 +13,103 @@ export const toHexColor = (color: string): string => {
     }
     const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
     if (!m) return '#000000'
-    const hex = (n: string) => Number(n).toString(16).padStart(2, '0')
-    return `#${hex(m[1]!)}${hex(m[2]!)}${hex(m[3]!)}`
+    return `#${hexByte(Number(m[1]!))}${hexByte(Number(m[2]!))}${hexByte(Number(m[3]!))}`
+}
+
+/** Dark-ish random color (0–127 per channel). Suitable for emoji backgrounds with white glyphs. */
+export const randomColor = (): string => {
+    const r = Math.floor(Math.random() * 128)
+    const g = Math.floor(Math.random() * 128)
+    const b = Math.floor(Math.random() * 128)
+    return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}`
+}
+
+/** Parse #rgb / #rrggbb (or rgb()) into 0–255 channels. */
+export const parseRgb = (color: string): {r: number; g: number; b: number} | null => {
+    if (color.startsWith('#')) {
+        const hex = toHexColor(color)
+        const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+        if (!m) return null
+        return {r: parseInt(m[1]!, 16), g: parseInt(m[2]!, 16), b: parseInt(m[3]!, 16)}
+    }
+    const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+    if (!m) return null
+    return {r: Number(m[1]), g: Number(m[2]), b: Number(m[3])}
+}
+
+const rgbToHsl = (r: number, g: number, b: number): {h: number; s: number; l: number} => {
+    const rn = r / 255
+    const gn = g / 255
+    const bn = b / 255
+    const max = Math.max(rn, gn, bn)
+    const min = Math.min(rn, gn, bn)
+    const l = (max + min) / 2
+    if (max === min) return {h: 0, s: 0, l}
+    const d = max - min
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    let h = 0
+    if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6
+    else if (max === gn) h = ((bn - rn) / d + 2) / 6
+    else h = ((rn - gn) / d + 4) / 6
+    return {h, s, l}
+}
+
+const hslToRgb = (h: number, s: number, l: number): {r: number; g: number; b: number} => {
+    if (s === 0) {
+        const v = Math.round(l * 255)
+        return {r: v, g: v, b: v}
+    }
+    const hue2rgb = (p: number, q: number, t: number) => {
+        let tt = t
+        if (tt < 0) tt += 1
+        if (tt > 1) tt -= 1
+        if (tt < 1 / 6) return p + (q - p) * 6 * tt
+        if (tt < 1 / 2) return q
+        if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6
+        return p
+    }
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+    const p = 2 * l - q
+    return {
+        r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+        g: Math.round(hue2rgb(p, q, h) * 255),
+        b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+    }
+}
+
+/**
+ * Complementary color on the color wheel (HSL hue + 180°).
+ * Keeps saturation/lightness so dark backgrounds stay dark (better than RGB invert).
+ */
+export const complementaryColor = (color: string): string => {
+    const rgb = parseRgb(color)
+    if (!rgb) return color
+    const {h, s, l} = rgbToHsl(rgb.r, rgb.g, rgb.b)
+    // Achromatic: no meaningful hue — nudge lightness slightly so gradient isn't flat
+    if (s < 0.02) {
+        const flipped = l > 0.5 ? Math.max(0, l - 0.35) : Math.min(1, l + 0.35)
+        const {r, g, b} = hslToRgb(h, s, flipped)
+        return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}`
+    }
+    const {r, g, b} = hslToRgb((h + 0.5) % 1, s, l)
+    return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}`
+}
+
+/** Random dark start + its complementary end. */
+export const randomComplementGradient = (): {start: string; end: string} => {
+    const start = randomColor()
+    return {start, end: complementaryColor(start)}
+}
+
+const charColorCache = new Map<string, string>()
+
+export const colorForChar = (ch: string): string => {
+    let color = charColorCache.get(ch)
+    if (!color) {
+        color = randomColor()
+        charColorCache.set(ch, color)
+    }
+    return color
 }
 
 export const downloadCanvas = (canvas: HTMLCanvasElement | null, filename: string) => {

@@ -1,5 +1,5 @@
 import {Gradient} from './Canvas.tsx'
-import {randomColor} from './charicon.ts'
+import {complementaryColor, randomComplementGradient} from './charicon.ts'
 
 export type Route = 'generator' | 'converter'
 
@@ -30,18 +30,23 @@ const parseNumber = (value: string | null, fallback: number): number => {
 const paramsFromSearch = (search: string): URLSearchParams =>
     new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
 
-export const defaultGeneratorState = (): GeneratorState => ({
-    character: '글',
-    bgIsGradient: false,
-    backgroundColor: randomColor(),
-    bgGradient: {start: '#ffffff', end: '#000000'},
-    colorIsGradient: false,
-    color: 'white',
-    colorGradient: {start: '#ffffff', end: '#000000'},
-    fontSize: 90,
-    x: 8,
-    y: 80,
-})
+export const defaultGeneratorState = (): GeneratorState => {
+    const bgGradient = randomComplementGradient()
+    return {
+        character: '글',
+        bgIsGradient: false,
+        // Solid mode uses gradient start so toggling to gradient feels continuous
+        backgroundColor: bgGradient.start,
+        bgGradient,
+        colorIsGradient: false,
+        color: '#ffffff',
+        // Glyph gradient: white → its complement (light gray via achromatic path)
+        colorGradient: {start: '#ffffff', end: complementaryColor('#ffffff')},
+        fontSize: 90,
+        x: 8,
+        y: 80,
+    }
+}
 
 export const defaultAppState = (route: Route = 'generator'): AppUrlState => ({
     route,
