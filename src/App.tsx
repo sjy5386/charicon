@@ -169,7 +169,6 @@ function GeneratorPage() {
             colorIsGradient={state.colorIsGradient} setColorIsGradient={setField('colorIsGradient')}
             color={state.color} setColor={setField('color')}
             colorGradient={state.colorGradient} setColorGradient={setField('colorGradient')}
-            font={state.font} setFont={setField('font')}
             fontSize={state.fontSize} setFontSize={setField('fontSize')}
             x={state.x} setX={setField('x')} y={state.y} setY={setField('y')}
             slack={slack}

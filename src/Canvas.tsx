@@ -16,7 +16,6 @@ export interface CanvasProps {
     character: string;
     backgroundColor: string | Gradient;
     color: string | Gradient;
-    font: string;
     fontSize: number;
     setFontSize: React.Dispatch<React.SetStateAction<number>>;
     x: number;
@@ -32,7 +31,6 @@ const Canvas = ({
                     character,
                     backgroundColor,
                     color,
-                    font,
                     fontSize,
                     setFontSize,
                     x,
@@ -71,11 +69,8 @@ const Canvas = ({
             ctx.fillStyle = getFillStyle(backgroundColor, width, height);
             ctx.fillRect(0, 0, width, height);
 
-            // 글자 쓰기 (글리프 없으면 번들 웹폰트로 fallback)
-            void Promise.all([
-                ensureWebFontsLoaded(fontSize),
-                document.fonts.load(`${fontSize}px "${font}"`).catch(() => undefined),
-            ]).then(() => {
+            // 글자 쓰기 (ChosunGs → 글리프 없으면 Gungsuhche)
+            void ensureWebFontsLoaded(fontSize).then(() => {
                 if (cancelled) return;
                 // 배경 다시 칠한 뒤 글자 (비동기 레이스 방지)
                 ctx.fillStyle = getFillStyle(backgroundColor, width, height);
@@ -83,7 +78,7 @@ const Canvas = ({
                 ctx.fillStyle = getFillStyle(color, width, height);
                 ctx.textBaseline = 'alphabetic';
                 ctx.textAlign = 'left';
-                fillTextWithFontFallback(ctx, character, x, y, fontSize, font);
+                fillTextWithFontFallback(ctx, character, x, y, fontSize);
                 setFaviconFromCanvas(canvas);
             });
 

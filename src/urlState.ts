@@ -11,7 +11,6 @@ export interface GeneratorState {
     colorIsGradient: boolean
     color: string
     colorGradient: Gradient
-    font: string
     fontSize: number
     x: number
     y: number
@@ -39,7 +38,6 @@ export const defaultGeneratorState = (): GeneratorState => ({
     colorIsGradient: false,
     color: 'white',
     colorGradient: {start: '#ffffff', end: '#000000'},
-    font: 'ChosunGs',
     fontSize: 90,
     x: 8,
     y: 80,
@@ -67,7 +65,7 @@ export const readGeneratorQuery = (search: string, fallback?: GeneratorState): G
     const hasGeneratorParams =
         p.has('char') || p.has('bg') || p.has('bgGrad') || p.has('bgStart') || p.has('bgEnd') ||
         p.has('color') || p.has('colorGrad') || p.has('colorStart') || p.has('colorEnd') ||
-        p.has('font') || p.has('size') || p.has('x') || p.has('y')
+        p.has('size') || p.has('x') || p.has('y')
 
     if (!hasGeneratorParams && fallback) {
         return fallback
@@ -87,7 +85,6 @@ export const readGeneratorQuery = (search: string, fallback?: GeneratorState): G
             start: colorStart ?? colorParam ?? base.colorGradient.start,
             end: colorEnd ?? base.colorGradient.end,
         },
-        font: p.get('font') ?? base.font,
         fontSize: parseNumber(p.get('size'), base.fontSize),
         x: parseNumber(p.get('x'), base.x),
         y: parseNumber(p.get('y'), base.y),
@@ -156,7 +153,6 @@ export const stateToSearchParams = (state: AppUrlState): URLSearchParams => {
         p.set('color', state.color)
     }
 
-    p.set('font', state.font)
     p.set('size', String(state.fontSize))
     p.set('x', String(state.x))
     p.set('y', String(state.y))

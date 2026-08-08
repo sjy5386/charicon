@@ -21,8 +21,6 @@ export interface CharIconGeneratorProps {
     setColor: React.Dispatch<React.SetStateAction<string>>;
     colorGradient: Gradient;
     setColorGradient: React.Dispatch<React.SetStateAction<Gradient>>;
-    font: string;
-    setFont: React.Dispatch<React.SetStateAction<string>>;
     fontSize: number;
     setFontSize: React.Dispatch<React.SetStateAction<number>>;
     x: number;
@@ -76,7 +74,6 @@ const CharIconGenerator = ({
                                colorIsGradient, setColorIsGradient,
                                color, setColor,
                                colorGradient, setColorGradient,
-                               font, setFont,
                                fontSize, setFontSize,
                                x, setX, y, setY,
                                slack,
@@ -87,8 +84,6 @@ const CharIconGenerator = ({
     const [registerOk, setRegisterOk] = useState(false)
     const [registerError, setRegisterError] = useState<string | null>(null)
     const size = 100
-    // Bundled webfonts only (no OS fonts — look differs by platform)
-    const fonts = ['ChosunGs', 'Gungsuhche']
 
     const emojiName = character ? hangulToQwerty(character) : ''
     const slackReady = slack.status === 'ready' && !!slack.teamdomain
@@ -150,7 +145,7 @@ const CharIconGenerator = ({
                 <Canvas canvasRef={canvasRef} width={size} height={size} character={character}
                         backgroundColor={bgIsGradient ? bgGradient : backgroundColor}
                         color={colorIsGradient ? colorGradient : color}
-                        font={font} fontSize={fontSize} setFontSize={setFontSize}
+                        fontSize={fontSize} setFontSize={setFontSize}
                         x={x} setX={setX} y={y} setY={setY}></Canvas>
             </div>
 
@@ -215,14 +210,6 @@ const CharIconGenerator = ({
                     </div>
                     <div className="input-row">
                         <div className="input-item">
-                            <label>글꼴</label>
-                            <select value={font} onChange={(e) => setFont(e.target.value)}>
-                                {fonts.map((f, index) => (
-                                    <option key={index} value={f}>{f}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="input-item">
                             <label>크기</label>
                             <input type="number" value={fontSize}
                                    onChange={(e) => setFontSize(Number(e.target.value))}
@@ -251,7 +238,7 @@ const CharIconGenerator = ({
                                 className="generator-slack-meta__placeholder"
                                 style={
                                     character
-                                        ? cssFontStyleForChar(character, font)
+                                        ? cssFontStyleForChar(character)
                                         : undefined
                                 }
                                 aria-hidden

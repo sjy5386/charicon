@@ -6,8 +6,11 @@
  * optical ink height of a shared reference hangul matches the primary face.
  */
 
-/** Bundled webfonts (see fonts.css). Order is the default stack. */
+/** Bundled webfonts (see fonts.css). Order is the fixed stack: primary → fallback. */
 export const WEB_FONTS = ['ChosunGs', 'Gungsuhche'] as const
+
+/** Always use ChosunGs first; Gungsuhche only when a glyph is missing. */
+export const PRIMARY_FONT = WEB_FONTS[0]
 
 /** Reference hangul both faces should contain (for optical size matching). */
 const OPTICAL_REF_CHAR = '한'
@@ -87,26 +90,18 @@ export const fontHasGlyph = (fontFamily: string, char: string): boolean => {
     return has
 }
 
-/** Primary first, then other bundled webfonts. No system fallbacks. */
-export const fontStack = (primary?: string): string[] => {
-    const stack: string[] = []
-    if (primary) stack.push(primary)
-    for (const f of WEB_FONTS) {
-        if (!stack.includes(f)) stack.push(f)
-    }
-    return stack
-}
+/** Fixed stack: ChosunGs → Gungsuhche. No system fallbacks. */
+export const fontStack = (): readonly string[] => WEB_FONTS
 
 /**
  * First font in the stack that can draw `char`.
- * If none can, returns the first stack entry (may still render blank).
+ * If none can, returns the primary (may still render blank).
  */
-export const resolveFontForChar = (char: string, primary?: string): string => {
-    const stack = fontStack(primary)
-    for (const f of stack) {
+export const resolveFontForChar = (char: string): string => {
+    for (const f of WEB_FONTS) {
         if (fontHasGlyph(f, char)) return f
     }
-    return stack[0] ?? WEB_FONTS[0]
+    return PRIMARY_FONT
 }
 
 /**
@@ -138,16 +133,15 @@ export type ResolvedFace = {
     scale: number
 }
 
-export const resolveFaceForChar = (char: string, primary?: string): ResolvedFace => {
-    const primaryFace = primary ?? WEB_FONTS[0]
-    const family = resolveFontForChar(char, primaryFace)
-    const scale = opticalScaleForFace(family, primaryFace)
+export const resolveFaceForChar = (char: string): ResolvedFace => {
+    const family = resolveFontForChar(char)
+    const scale = opticalScaleForFace(family, PRIMARY_FONT)
     return {family, scale}
 }
 
 /** CSS `font-family` for a single character (quoted family name only). */
-export const cssFontFamilyForChar = (char: string, primary?: string): string =>
-    `"${resolveFontForChar(char, primary)}"`
+export const cssFontFamilyForChar = (char: string): string =>
+    `"${resolveFontForChar(char)}"`
 
 /**
  * Inline style for DOM: family + optional `font-size: N em` optical correction.
@@ -155,9 +149,8 @@ export const cssFontFamilyForChar = (char: string, primary?: string): string =>
  */
 export const cssFontStyleForChar = (
     char: string,
-    primary?: string,
 ): {fontFamily: string; fontSize?: string} => {
-    const {family, scale} = resolveFaceForChar(char, primary)
+    const {family, scale} = resolveFaceForChar(char)
     if (Math.abs(scale - 1) < 0.01) {
         return {fontFamily: `"${family}"`}
     }
@@ -185,13 +178,11 @@ export const fillTextWithFontFallback = (
     x: number,
     y: number,
     fontSize: number,
-    primary?: string,
 ): void => {
     if (!text) return
 
-    const primaryFace = primary ?? WEB_FONTS[0]
     const chars = Array.from(text)
-    const faces = chars.map((ch) => resolveFaceForChar(ch, primaryFace))
+    const faces = chars.map((ch) => resolveFaceForChar(ch))
     const sizes = faces.map((f) => fontSize * f.scale)
     const widths = chars.map((ch, i) => {
         ctx.font = `${sizes[i]}px "${faces[i]!.family}"`

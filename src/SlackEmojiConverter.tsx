@@ -99,7 +99,6 @@ const drawPreviewEmojiToCanvas = (
         size / 2,
         size / 2 + size * 0.02,
         fontSize,
-        'ChosunGs',
     )
     return canvas
 }
@@ -346,9 +345,9 @@ const SlackEmojiConverter = ({
                             !!onCreateCharacter &&
                             text.length > 0
 
-                        // ChosunGs may have empty glyphs (e.g. 힣) — Gungsuhche + optical scale
+                        // ChosunGs → Gungsuhche (+ optical scale) when glyph missing
                         const glyphStyle = webFontsReady
-                            ? cssFontStyleForChar(ch, 'ChosunGs')
+                            ? cssFontStyleForChar(ch)
                             : {fontFamily: '"ChosunGs"'}
 
                         if (canCreate) {
