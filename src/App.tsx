@@ -19,6 +19,7 @@ import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
 import {useSlackExtension} from './slack/useSlackExtension.ts'
 import {
     applyLocationToState,
+    defaultGeneratorState,
     pathForRoute,
     searchStringForState,
     type AppUrlState,
@@ -36,6 +37,8 @@ type AppOutletContext = {
     slack: ReturnType<typeof useSlackExtension>
     /** Jump to generator with this character pre-filled (e.g. missing emoji from converter). */
     openGeneratorWithCharacter: (character: string) => void
+    /** Reset current tab to defaults (and clear its URL query). */
+    resetCurrent: () => void
 }
 
 function useOutletApp() {
@@ -118,6 +121,16 @@ function AppLayout() {
         )
     }
 
+    /** Clear current tab like a fresh load (URL query updates via the state→navigate effect). */
+    const resetCurrent = () => {
+        setState(prev => {
+            if (prev.route === 'converter') {
+                return {...prev, converterText: ''}
+            }
+            return {...prev, ...defaultGeneratorState()}
+        })
+    }
+
     return (
         <div className="container">
             <SlackStatusBadge slack={slack}/>
@@ -151,14 +164,20 @@ function AppLayout() {
             </div>
 
             <Outlet
-                context={{state, setField, slack, openGeneratorWithCharacter} satisfies AppOutletContext}
+                context={{
+                    state,
+                    setField,
+                    slack,
+                    openGeneratorWithCharacter,
+                    resetCurrent,
+                } satisfies AppOutletContext}
             />
         </div>
     )
 }
 
 function GeneratorPage() {
-    const {state, setField, slack} = useOutletApp()
+    const {state, setField, slack, resetCurrent} = useOutletApp()
 
     return (
         <CharIconGenerator
@@ -172,18 +191,20 @@ function GeneratorPage() {
             fontSize={state.fontSize} setFontSize={setField('fontSize')}
             x={state.x} setX={setField('x')} y={state.y} setY={setField('y')}
             slack={slack}
+            onReset={resetCurrent}
         />
     )
 }
 
 function ConverterPage() {
-    const {state, setField, slack, openGeneratorWithCharacter} = useOutletApp()
+    const {state, setField, slack, openGeneratorWithCharacter, resetCurrent} = useOutletApp()
     return (
         <SlackEmojiConverter
             text={state.converterText}
             setText={setField('converterText')}
             slack={slack}
             onCreateCharacter={openGeneratorWithCharacter}
+            onReset={resetCurrent}
         />
     )
 }

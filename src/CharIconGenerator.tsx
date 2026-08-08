@@ -33,6 +33,7 @@ export interface CharIconGeneratorProps {
     y: number;
     setY: React.Dispatch<React.SetStateAction<number>>;
     slack: SlackExtensionState;
+    onReset: () => void;
 }
 
 const GradientToggle = ({
@@ -82,6 +83,7 @@ const CharIconGenerator = ({
                                fontSize, setFontSize,
                                x, setX, y, setY,
                                slack,
+                               onReset,
                            }: CharIconGeneratorProps) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const [downloaded, setDownloaded] = useState(false)
@@ -273,6 +275,19 @@ const CharIconGenerator = ({
                     </div>
                 )}
                 <div className="generator-actions">
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => {
+                            setRegisterError(null)
+                            setRegisterOk(false)
+                            setDownloaded(false)
+                            onReset()
+                        }}
+                        title="글자·색·위치를 기본값으로 되돌립니다"
+                    >
+                        초기화
+                    </button>
                     {slackReady && (
                         <button
                             type="button"

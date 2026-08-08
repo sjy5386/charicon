@@ -24,6 +24,8 @@ export interface SlackEmojiConverterProps {
     slack: SlackExtensionState
     /** Open generator with this hangul character (missing workspace emoji). */
     onCreateCharacter?: (character: string) => void
+    /** Clear converter input (and its URL query). */
+    onReset?: () => void
 }
 
 const isHangul = (ch: string) => {
@@ -124,6 +126,7 @@ const SlackEmojiConverter = ({
     setText,
     slack,
     onCreateCharacter,
+    onReset,
 }: SlackEmojiConverterProps) => {
     const [copied, setCopied] = useState(false)
     const [composing, setComposing] = useState(false)
@@ -432,14 +435,26 @@ const SlackEmojiConverter = ({
                                   value={result}/>
                     </div>
                 </div>
-                <button
-                    className={copied ? 'is-success' : undefined}
-                    style={{marginTop: '1.2rem'}}
-                    onClick={handleCopy}
-                    disabled={!result}
-                >
-                    {copied ? '복사됨' : '복사'}
-                </button>
+                <div className="converter-actions">
+                    {onReset && (
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={onReset}
+                            title="입력을 비웁니다"
+                        >
+                            초기화
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className={copied ? 'is-success' : undefined}
+                        onClick={handleCopy}
+                        disabled={!result}
+                    >
+                        {copied ? '복사됨' : '복사'}
+                    </button>
+                </div>
             </div>
         </>
     )

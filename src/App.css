@@ -588,7 +588,8 @@ button.slack-preview-emoji.is-picker-open {
   border-width: 1.5px;
 }
 
-.generator-actions {
+.generator-actions,
+.converter-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -596,12 +597,30 @@ button.slack-preview-emoji.is-picker-open {
   margin-top: 0.75rem;
 }
 
-.generator-actions button {
+.converter-actions {
+  margin-top: 1.2rem;
+}
+
+.generator-actions button,
+.converter-actions button {
   margin: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+}
+
+button.btn-secondary {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+button.btn-secondary:hover {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-color: var(--label-color);
 }
 
 .generator-action-spinner {
