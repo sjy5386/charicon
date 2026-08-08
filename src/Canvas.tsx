@@ -1,8 +1,55 @@
 import * as React from 'react'
 import {useEffect, useState} from 'react'
 import {setFaviconFromCanvas} from './charicon.ts'
-import {ensureWebFontsLoaded, fillTextWithFontFallback} from './fontFallback.ts'
+import {
+    ensureWebFontsLoaded,
+    fillTextWithFontFallback,
+    resolveFaceForChar,
+} from './fontFallback.ts'
 import './fonts.css'
+
+/**
+ * When font-size changes with left/alphabetic anchoring, shift (x, y) so the
+ * glyph's optical center stays put instead of collapsing toward bottom-left.
+ */
+const positionPreservingFontSizeChange = (
+    ctx: CanvasRenderingContext2D | null,
+    character: string,
+    oldSize: number,
+    newSize: number,
+    x: number,
+    y: number,
+): {x: number; y: number} => {
+    if (oldSize <= 0 || newSize === oldSize) {
+        return {x, y}
+    }
+    const ratio = newSize / oldSize
+
+    // Default em offsets when metrics are unavailable (typical CJK box).
+    let offsetX = oldSize * 0.5
+    let offsetY = -oldSize * 0.36
+
+    if (ctx && character) {
+        const face = resolveFaceForChar(Array.from(character)[0] ?? character)
+        const drawn = oldSize * face.scale
+        ctx.font = `${drawn}px "${face.family}"`
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'alphabetic'
+        const m = ctx.measureText(character)
+        const left = m.actualBoundingBoxLeft ?? 0
+        const right = m.actualBoundingBoxRight ?? m.width
+        const ascent = m.actualBoundingBoxAscent ?? drawn * 0.8
+        const descent = m.actualBoundingBoxDescent ?? drawn * 0.2
+        // Ink box relative to left/alphabetic anchor (x, y).
+        offsetX = (right - left) / 2
+        offsetY = (descent - ascent) / 2
+    }
+
+    return {
+        x: x + offsetX * (1 - ratio),
+        y: y + offsetY * (1 - ratio),
+    }
+}
 
 export interface Gradient {
     start: string;
@@ -114,7 +161,18 @@ const Canvas = ({
                 }} onTouchEnd={() => setDragging(false)} onWheel={e => {
                     if (e.ctrlKey || e.metaKey) {
                         e.preventDefault();
-                        setFontSize(prevState => Math.max(0, Math.min(prevState + e.deltaY * -0.1, 200)));
+                        const nextSize = Math.max(0, Math.min(fontSize + e.deltaY * -0.1, 200));
+                        if (nextSize === fontSize) {
+                            return;
+                        }
+                        const canvas = canvasRef.current;
+                        const ctx = canvas?.getContext('2d') ?? null;
+                        const nextPos = positionPreservingFontSizeChange(
+                            ctx, character, fontSize, nextSize, x, y,
+                        );
+                        setX(nextPos.x);
+                        setY(nextPos.y);
+                        setFontSize(nextSize);
                     }
                 }}
                         style={{'cursor': 'grab'}}></canvas>
