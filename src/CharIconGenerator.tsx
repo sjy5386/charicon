@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {useRef, useState} from 'react'
 import {downloadCanvas, hangulToQwerty, resolveHangulWorkspaceEmoji} from './charicon.ts'
-import {cssFontFamilyForChar} from './fontFallback.ts'
+import {cssFontStyleForChar} from './fontFallback.ts'
 import Canvas, {Gradient} from "./Canvas.tsx"
 import {registerEmoji} from './slack/bridge'
 import type {SlackExtensionState} from './slack/useSlackExtension'
@@ -251,7 +251,7 @@ const CharIconGenerator = ({
                                 className="generator-slack-meta__placeholder"
                                 style={
                                     character
-                                        ? {fontFamily: cssFontFamilyForChar(character, font)}
+                                        ? cssFontStyleForChar(character, font)
                                         : undefined
                                 }
                                 aria-hidden

@@ -9,7 +9,7 @@ import {
     setFaviconFromDataUrl,
 } from './charicon.ts'
 import {
-    cssFontFamilyForChar,
+    cssFontStyleForChar,
     ensureWebFontsLoaded,
     fillTextWithFontFallback,
 } from './fontFallback.ts'
@@ -346,10 +346,10 @@ const SlackEmojiConverter = ({
                             !!onCreateCharacter &&
                             text.length > 0
 
-                        // ChosunGs may have empty glyphs (e.g. 힣) — pick Gungsuhche per char
-                        const glyphFont = webFontsReady
-                            ? cssFontFamilyForChar(ch, 'ChosunGs')
-                            : '"ChosunGs"'
+                        // ChosunGs may have empty glyphs (e.g. 힣) — Gungsuhche + optical scale
+                        const glyphStyle = webFontsReady
+                            ? cssFontStyleForChar(ch, 'ChosunGs')
+                            : {fontFamily: '"ChosunGs"'}
 
                         if (canCreate) {
                             return (
@@ -359,7 +359,7 @@ const SlackEmojiConverter = ({
                                     className="slack-preview-emoji is-missing is-clickable"
                                     style={{
                                         backgroundColor: colorForChar(ch),
-                                        fontFamily: glyphFont,
+                                        ...glyphStyle,
                                     }}
                                     title={`미등록 :${base}: — 클릭하면 생성기로 이동`}
                                     aria-label={`${ch} 미등록. 생성기에서 만들기`}
@@ -379,7 +379,7 @@ const SlackEmojiConverter = ({
                                 ].filter(Boolean).join(' ')}
                                 style={{
                                     backgroundColor: colorForChar(ch),
-                                    fontFamily: glyphFont,
+                                    ...glyphStyle,
                                 }}
                                 title={
                                     slackReady
