@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
+import {CHROME_WEBSTORE_URL, FIREFOX_ADDON_URL} from './storeLinks'
 import type {SlackExtensionState} from './useSlackExtension'
 
 type Props = {
@@ -106,14 +107,26 @@ const SlackStatusBadge = ({slack}: Props) => {
                             <p className="slack-dock__line">
                                 브라우저 확장이 없습니다. 설치하면 워크스페이스에 바로 등록·미리보기할 수 있어요.
                             </p>
-                            <a
-                                className="slack-dock__store-btn"
-                                href="https://addons.mozilla.org/firefox/addon/charicon-for-slack/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Firefox에서 설치
-                            </a>
+                            <div className="slack-dock__store-links">
+                                <a
+                                    className="slack-dock__store-btn"
+                                    href={FIREFOX_ADDON_URL}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Firefox에서 설치
+                                </a>
+                                {CHROME_WEBSTORE_URL && (
+                                    <a
+                                        className="slack-dock__store-btn"
+                                        href={CHROME_WEBSTORE_URL}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Chrome에서 설치
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     )}
 
