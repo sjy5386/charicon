@@ -208,14 +208,6 @@ const CharIconGenerator = ({
                             )}
                         </div>
                     </div>
-                    <div className="input-row">
-                        <div className="input-item">
-                            <label>크기</label>
-                            <input type="number" value={fontSize}
-                                   onChange={(e) => setFontSize(Number(e.target.value))}
-                                   min={0} max={200}/>
-                        </div>
-                    </div>
                 </div>
                 {slackReady && emojiName && (
                     <div
