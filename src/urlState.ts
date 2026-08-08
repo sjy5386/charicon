@@ -1,5 +1,5 @@
 import {Gradient} from './Canvas.tsx'
-import {complementaryColor, randomComplementGradient} from './charicon.ts'
+import {complementaryColor, randomComplementGradient, randomHangul} from './charicon.ts'
 
 export type Route = 'generator' | 'converter'
 
@@ -33,7 +33,7 @@ const paramsFromSearch = (search: string): URLSearchParams =>
 export const defaultGeneratorState = (): GeneratorState => {
     const bgGradient = randomComplementGradient()
     return {
-        character: '글',
+        character: randomHangul(),
         bgIsGradient: false,
         // Solid mode uses gradient start so toggling to gradient feels continuous
         backgroundColor: bgGradient.start,

@@ -161,6 +161,12 @@ const JONGSEONG = [
 const HANGUL_BASE = 0xAC00;
 const HANGUL_END = 0xD7A3;
 
+/** Random Hangul syllable in the 가–힣 range (U+AC00–U+D7A3). */
+export const randomHangul = (): string => {
+    const code = HANGUL_BASE + Math.floor(Math.random() * (HANGUL_END - HANGUL_BASE + 1))
+    return String.fromCharCode(code)
+}
+
 export const hangulToQwerty = (text: string): string => {
     let result = '';
     for (const ch of text) {
