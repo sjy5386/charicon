@@ -1,7 +1,7 @@
 import {Gradient} from './Canvas.tsx'
 import {complementaryColor, randomComplementGradient, randomHangul} from './charicon.ts'
 
-export type Route = 'generator' | 'converter'
+export type Route = 'generator' | 'converter' | 'catalog'
 
 export interface GeneratorState {
     character: string
@@ -54,8 +54,11 @@ export const defaultAppState = (route: Route = 'generator'): AppUrlState => ({
     ...defaultGeneratorState(),
 })
 
-export const routeFromPathname = (pathname: string): Route =>
-    pathname.endsWith('/converter') || pathname === 'converter' ? 'converter' : 'generator'
+export const routeFromPathname = (pathname: string): Route => {
+    if (pathname.endsWith('/converter') || pathname === 'converter') return 'converter'
+    if (pathname.endsWith('/catalog') || pathname === 'catalog') return 'catalog'
+    return 'generator'
+}
 
 export const readGeneratorQuery = (search: string, fallback?: GeneratorState): GeneratorState => {
     const p = paramsFromSearch(search)
@@ -119,6 +122,14 @@ export const applyLocationToState = (
         }
     }
 
+    if (route === 'catalog') {
+        return {
+            ...base,
+            route,
+            converterText: base.converterText,
+        }
+    }
+
     return {
         ...base,
         route,
@@ -135,6 +146,10 @@ export const stateToSearchParams = (state: AppUrlState): URLSearchParams => {
         if (state.converterText) {
             p.set('text', state.converterText)
         }
+        return p
+    }
+
+    if (state.route === 'catalog') {
         return p
     }
 
@@ -165,8 +180,11 @@ export const stateToSearchParams = (state: AppUrlState): URLSearchParams => {
     return p
 }
 
-export const pathForRoute = (route: Route): string =>
-    route === 'converter' ? '/converter' : '/generator'
+export const pathForRoute = (route: Route): string => {
+    if (route === 'converter') return '/converter'
+    if (route === 'catalog') return '/catalog'
+    return '/generator'
+}
 
 export const searchStringForState = (state: AppUrlState): string => {
     const query = stateToSearchParams(state).toString()

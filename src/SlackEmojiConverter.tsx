@@ -2,16 +2,17 @@ import * as React from 'react'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import emojiRegex from 'emoji-regex'
 import {
-    colorForChar,
     hangulToSlackEmoji,
     resolveHangulWorkspaceEmoji,
     setFaviconFromCanvas,
     setFaviconFromDataUrl,
 } from './charicon.ts'
+import {ensureWebFontsLoaded} from './fontFallback.ts'
 import {
-    ensureWebFontsLoaded,
-    fillTextWithFontFallback,
-} from './fontFallback.ts'
+    drawPreviewEmojiToCanvas,
+    localPreviewDataUrl,
+    type EmojiPreviewMode,
+} from './previewEmojiTile.ts'
 import {
     loadNameByCharForWorkspace,
     saveNameByCharForWorkspace,
@@ -62,63 +63,6 @@ const firstPreviewHangul = (text: string): string | null => {
         if (isHangul(ch)) return ch
     }
     return null
-}
-
-// Keep in sync with .slack-preview-emoji / .slack-preview.is-jumbo .slack-preview-emoji
-const EMOJI_STYLE = {
-    jumbo: {box: 32, font: 28, radius: 4},
-    inline: {box: 20, font: 17, radius: 3},
-} as const
-
-/** Draw the converter preview emoji style onto a canvas (favicon + local tiles). */
-const drawPreviewEmojiToCanvas = (
-    ch: string,
-    mode: keyof typeof EMOJI_STYLE = 'jumbo',
-    size = 64,
-): HTMLCanvasElement => {
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return canvas
-
-    const {box, font, radius: r} = EMOJI_STYLE[mode]
-    const radius = size * (r / box)
-    ctx.fillStyle = colorForChar(ch)
-    ctx.beginPath()
-    ctx.roundRect(0, 0, size, size, radius)
-    ctx.fill()
-
-    const fontSize = size * (font / box)
-    ctx.fillStyle = 'white'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    // Slight optical center for hangul; ChosunGs → Gungsuhche + optical scale
-    fillTextWithFontFallback(
-        ctx,
-        ch,
-        size / 2,
-        size / 2 + size * 0.02,
-        fontSize,
-    )
-    return canvas
-}
-
-/** mode\0char → data URL (same glyph stack as generator canvas). */
-const localPreviewCache = new Map<string, string>()
-
-const localPreviewDataUrl = (
-    ch: string,
-    mode: keyof typeof EMOJI_STYLE,
-): string => {
-    const key = `${mode}\0${ch}`
-    let url = localPreviewCache.get(key)
-    if (!url) {
-        // Render at 2× for crisp downscale in the 20–32px preview tiles
-        url = drawPreviewEmojiToCanvas(ch, mode, 64).toDataURL('image/png')
-        localPreviewCache.set(key, url)
-    }
-    return url
 }
 
 const SlackEmojiConverter = ({
@@ -201,7 +145,7 @@ const SlackEmojiConverter = ({
         [text, nameByChar, slackReady, emojiMap],
     )
     const displayText = text || '글자티콘'
-    const emojiMode = jumbo ? 'jumbo' : 'inline'
+    const emojiMode: EmojiPreviewMode = jumbo ? 'jumbo' : 'inline'
 
     useEffect(() => {
         const ch = firstPreviewHangul(text)
@@ -222,8 +166,7 @@ const SlackEmojiConverter = ({
             setFaviconFromCanvas(drawPreviewEmojiToCanvas(ch, emojiMode))
         }
 
-        const fontPx = EMOJI_STYLE[emojiMode].font
-        void ensureWebFontsLoaded(fontPx).then(apply, apply)
+        void ensureWebFontsLoaded().then(apply, apply)
     }, [text, emojiMode, slackReady, emojiMap, nameByChar])
 
     const pickVariant = (character: string, chosen: string) => {

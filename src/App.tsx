@@ -14,6 +14,7 @@ import {
 import './App.css'
 import {colorForChar, complementaryColor, toHexColor} from './charicon.ts'
 import CharIconGenerator from './CharIconGenerator.tsx'
+import HangulEmojiCatalog from './HangulEmojiCatalog.tsx'
 import SlackEmojiConverter from './SlackEmojiConverter.tsx'
 import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
 import {useSlackExtension} from './slack/useSlackExtension.ts'
@@ -29,6 +30,7 @@ import {
 const PAGE_TITLES: Record<AppRoute, string> = {
     generator: '글자티콘 생성기',
     converter: '글자티콘 변환기',
+    catalog: '글자티콘 목록',
 }
 
 type AppOutletContext = {
@@ -161,6 +163,19 @@ function AppLayout() {
                 >
                     변환기
                 </NavLink>
+                <NavLink
+                    to={{
+                        pathname: pathForRoute('catalog'),
+                        search: searchStringForState({...state, route: 'catalog'}),
+                    }}
+                    className={({isActive}) => `tab ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                        e.preventDefault()
+                        goTo('catalog')
+                    }}
+                >
+                    목록
+                </NavLink>
             </div>
 
             <Outlet
@@ -209,6 +224,16 @@ function ConverterPage() {
     )
 }
 
+function CatalogPage() {
+    const {slack, openGeneratorWithCharacter} = useOutletApp()
+    return (
+        <HangulEmojiCatalog
+            slack={slack}
+            onSelectCharacter={openGeneratorWithCharacter}
+        />
+    )
+}
+
 function App() {
     return (
         <Routes>
@@ -216,6 +241,7 @@ function App() {
                 <Route index element={<Navigate to="generator" replace/>}/>
                 <Route path="generator" element={<GeneratorPage/>}/>
                 <Route path="converter" element={<ConverterPage/>}/>
+                <Route path="catalog" element={<CatalogPage/>}/>
                 <Route path="*" element={<Navigate to="generator" replace/>}/>
             </Route>
         </Routes>

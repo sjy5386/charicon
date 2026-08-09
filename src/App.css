@@ -815,3 +815,259 @@ button:active {
   background: #646cff;
   color: #fff;
 }
+
+/* --- Hangul catalog (가–힣) --- */
+
+.catalog-lead {
+  margin: 0 auto 1rem;
+  max-width: 36rem;
+  color: var(--label-color);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.catalog-lead strong {
+  color: var(--text-color);
+}
+
+.catalog-card {
+  text-align: left;
+  padding: 1rem 1rem 0.85rem;
+}
+
+.catalog-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.catalog-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.catalog-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.catalog-stat--ok {
+  color: #2f9e44;
+}
+
+.catalog-stat--miss {
+  color: #e03131;
+}
+
+.catalog-stat--muted {
+  color: var(--label-color);
+  font-weight: 500;
+}
+
+.catalog-stat__detail {
+  font-weight: 500;
+  color: var(--label-color);
+  font-size: 0.8rem;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.catalog-filters button {
+  margin: 0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--label-color);
+  line-height: 1.2;
+}
+
+.catalog-filters button:hover:not(:disabled) {
+  color: var(--text-color);
+  border-color: color-mix(in srgb, #646cff 50%, var(--border-color));
+  transform: none;
+  background: transparent;
+}
+
+.catalog-filters button.is-active {
+  background: color-mix(in srgb, #646cff 22%, transparent);
+  border-color: #646cff;
+  color: var(--text-color);
+}
+
+.catalog-search {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.catalog-search input[type='search'] {
+  flex: 1;
+  min-width: 0;
+  height: 2.4rem;
+  padding: 0 0.75rem;
+  font-size: 0.95rem;
+  text-align: left;
+  max-width: none;
+  border: 2px solid var(--input-border);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border-radius: 8px;
+}
+
+.catalog-search input[type='search']:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.catalog-refresh {
+  width: 2.4rem;
+  min-width: 2.4rem;
+  padding: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catalog-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-color) 70%, var(--card-bg));
+  border: 1px solid var(--border-color);
+  color: var(--label-color);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.catalog-hint__spinner {
+  flex-shrink: 0;
+}
+
+.catalog-scroll {
+  height: min(62vh, 520px);
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-color) 55%, var(--card-bg));
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.catalog-empty {
+  margin: 2rem 0;
+  text-align: center;
+  color: var(--label-color);
+  font-size: 0.9rem;
+}
+
+.catalog-grid-spacer {
+  width: 100%;
+}
+
+/* Grid placement on top of shared .slack-preview-emoji (converter jumbo 32px). */
+button.slack-preview-emoji.catalog-cell {
+  position: absolute;
+  margin: 0;
+  /* Match .slack-preview.is-jumbo .slack-preview-emoji */
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  font-size: 28px;
+}
+
+.catalog-cell__badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  min-width: 0.85rem;
+  height: 0.85rem;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, #f08c00 90%, #000);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 700;
+  line-height: 0.85rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Alternate: same real tile, orange ring so filter “대체만” is scannable */
+.catalog-cell.is-alternate {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #f08c00 80%, transparent);
+}
+
+/* Missing uses converter .slack-preview-emoji.is-missing dashed outline */
+.catalog-cell.is-unknown {
+  opacity: 0.9;
+}
+
+button.slack-preview-emoji.catalog-cell:hover {
+  z-index: 1;
+}
+
+button.slack-preview-emoji.catalog-cell:focus-visible {
+  z-index: 1;
+}
+
+.catalog-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--label-color);
+}
+
+.catalog-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.catalog-legend__swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--label-color) 25%, transparent);
+  box-sizing: border-box;
+}
+
+.catalog-legend__swatch.is-registered {
+  box-shadow: inset 0 0 0 2px #2f9e44;
+  background: color-mix(in srgb, #2f9e44 20%, transparent);
+}
+
+.catalog-legend__swatch.is-alternate {
+  box-shadow: inset 0 0 0 2px #f08c00;
+  background: color-mix(in srgb, #f08c00 20%, transparent);
+}
+
+.catalog-legend__swatch.is-missing {
+  outline: 1px dashed var(--label-color);
+  outline-offset: -2px;
+}
+
+.catalog-legend__swatch.is-unknown {
+  opacity: 0.5;
+}
