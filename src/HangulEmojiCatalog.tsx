@@ -38,7 +38,8 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
     const scrollRef = useRef<HTMLDivElement | null>(null)
     const [scrollTop, setScrollTop] = useState(0)
     const [viewportH, setViewportH] = useState(480)
-    const [cols, setCols] = useState(12)
+    /** Content-box width (padding excluded) for full-bleed column spacing. */
+    const [gridW, setGridW] = useState(0)
     /** Webfonts ready so glyph probes match converter local tiles. */
     const [webFontsReady, setWebFontsReady] = useState(false)
 
@@ -61,14 +62,17 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
         [snapshot, filter, query],
     )
 
-    // Measure grid width → column count
+    // Measure content box → cols + leftover absorbed into column gap (no right gutter)
     useEffect(() => {
         const el = scrollRef.current
         if (!el) return
         const measure = () => {
-            const w = el.clientWidth
-            const next = Math.max(4, Math.floor((w + GAP) / (CELL + GAP)))
-            setCols(next)
+            const cs = getComputedStyle(el)
+            const padX =
+                (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0)
+            // clientWidth already excludes scrollbar; subtract padding for the grid area
+            const w = Math.max(0, el.clientWidth - padX)
+            setGridW(w)
             setViewportH(el.clientHeight)
         }
         measure()
@@ -82,6 +86,14 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
         if (!el) return
         setScrollTop(el.scrollTop)
     }, [])
+
+    // Fit as many 32px cells as possible with at least GAP between them; stretch gap to fill width
+    const cols = Math.max(1, Math.floor((gridW + GAP) / (CELL + GAP)) || 1)
+    const colGap =
+        cols > 1 ? Math.max(GAP, (gridW - cols * CELL) / (cols - 1)) : 0
+    const colStride = CELL + colGap
+    // Single column: center in grid width
+    const originX = cols === 1 ? Math.max(0, (gridW - CELL) / 2) : 0
 
     const rowCount = Math.max(1, Math.ceil(indices.length / cols))
     const rowStride = CELL + GAP
@@ -118,8 +130,7 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
             <h1>글자티콘 목록</h1>
             <p className="catalog-lead">
                 완성형 한글 <strong>{HANGUL_COUNT.toLocaleString('ko-KR')}</strong>자
-                (가–힣)와 워크스페이스 등록 상태입니다.
-                미리보기는 변환기와 동일합니다. 글자를 누르면 생성기로 이동합니다.
+                (가–힣) 등록 상태. 글자를 누르면 생성기로 이동합니다.
             </p>
 
             <div className="card catalog-card">
@@ -316,7 +327,7 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
                                         style={{
                                             width: CELL,
                                             height: CELL,
-                                            left: col * (CELL + GAP),
+                                            left: originX + col * colStride,
                                             top: row * rowStride,
                                         }}
                                         title={title}
@@ -339,7 +350,7 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
                 <p className="catalog-legend">
                     <span className="catalog-legend__item">
                         <span className="catalog-legend__swatch is-registered" />
-                        기본 이름 등록 (워크스페이스 이미지)
+                        기본 이름 등록
                     </span>
                     <span className="catalog-legend__item">
                         <span className="catalog-legend__swatch is-alternate" />
@@ -347,7 +358,7 @@ const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps)
                     </span>
                     <span className="catalog-legend__item">
                         <span className="catalog-legend__swatch is-missing" />
-                        미등록 (변환기와 같은 로컬 미리보기)
+                        미등록
                     </span>
                 </p>
             </div>
