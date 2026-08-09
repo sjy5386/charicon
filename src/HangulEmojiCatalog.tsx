@@ -22,6 +22,10 @@ import type {SlackExtensionState} from './slack/useSlackExtension'
 
 export interface HangulEmojiCatalogProps {
     slack: SlackExtensionState
+    filter: CatalogFilter
+    setFilter: (filter: CatalogFilter) => void
+    query: string
+    setQuery: (query: string) => void
     /** Open generator with this hangul character. */
     onSelectCharacter?: (character: string) => void
 }
@@ -32,9 +36,14 @@ const GAP = 6
 const OVERSCAN_ROWS = 6
 const PREVIEW_MODE = 'jumbo' as const
 
-const HangulEmojiCatalog = ({slack, onSelectCharacter}: HangulEmojiCatalogProps) => {
-    const [filter, setFilter] = useState<CatalogFilter>('all')
-    const [query, setQuery] = useState('')
+const HangulEmojiCatalog = ({
+    slack,
+    filter,
+    setFilter,
+    query,
+    setQuery,
+    onSelectCharacter,
+}: HangulEmojiCatalogProps) => {
     const scrollRef = useRef<HTMLDivElement | null>(null)
     const [scrollTop, setScrollTop] = useState(0)
     const [viewportH, setViewportH] = useState(480)

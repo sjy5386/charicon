@@ -1,5 +1,6 @@
 import {Gradient} from './Canvas.tsx'
 import {complementaryColor, randomComplementGradient, randomHangul} from './charicon.ts'
+import type {CatalogFilter} from './hangulCatalog.ts'
 
 export type Route = 'generator' | 'converter' | 'catalog'
 
@@ -16,9 +17,35 @@ export interface GeneratorState {
     y: number
 }
 
-export interface AppUrlState extends GeneratorState {
+export interface CatalogState {
+    /** Registration filter: all | registered | missing | alternate */
+    catalogFilter: CatalogFilter
+    /** Search: hangul char or emoji name */
+    catalogQuery: string
+}
+
+export interface AppUrlState extends GeneratorState, CatalogState {
     route: Route
     converterText: string
+}
+
+const CATALOG_FILTERS: readonly CatalogFilter[] = [
+    'all',
+    'registered',
+    'missing',
+    'alternate',
+]
+
+export const defaultCatalogState = (): CatalogState => ({
+    catalogFilter: 'all',
+    catalogQuery: '',
+})
+
+const parseCatalogFilter = (value: string | null, fallback: CatalogFilter): CatalogFilter => {
+    if (value && (CATALOG_FILTERS as readonly string[]).includes(value)) {
+        return value as CatalogFilter
+    }
+    return fallback
 }
 
 const parseNumber = (value: string | null, fallback: number): number => {
@@ -52,6 +79,7 @@ export const defaultAppState = (route: Route = 'generator'): AppUrlState => ({
     route,
     converterText: '',
     ...defaultGeneratorState(),
+    ...defaultCatalogState(),
 })
 
 export const routeFromPathname = (pathname: string): Route => {
@@ -105,6 +133,22 @@ export const readConverterQuery = (search: string, fallbackText = ''): string =>
     return p.get('text') ?? ''
 }
 
+export const readCatalogQuery = (
+    search: string,
+    fallback?: CatalogState,
+): CatalogState => {
+    const p = paramsFromSearch(search)
+    const base = fallback ?? defaultCatalogState()
+    const hasCatalogParams = p.has('filter') || p.has('q')
+    if (!hasCatalogParams && fallback) {
+        return fallback
+    }
+    return {
+        catalogFilter: parseCatalogFilter(p.get('filter'), base.catalogFilter),
+        catalogQuery: p.has('q') ? (p.get('q') ?? '') : base.catalogQuery,
+    }
+}
+
 /** Merge location into state; other tab's fields stay from `prev`. */
 export const applyLocationToState = (
     prev: AppUrlState | undefined,
@@ -126,7 +170,10 @@ export const applyLocationToState = (
         return {
             ...base,
             route,
-            converterText: base.converterText,
+            ...readCatalogQuery(search, {
+                catalogFilter: base.catalogFilter,
+                catalogQuery: base.catalogQuery,
+            }),
         }
     }
 
@@ -150,6 +197,12 @@ export const stateToSearchParams = (state: AppUrlState): URLSearchParams => {
     }
 
     if (state.route === 'catalog') {
+        if (state.catalogFilter !== 'all') {
+            p.set('filter', state.catalogFilter)
+        }
+        if (state.catalogQuery) {
+            p.set('q', state.catalogQuery)
+        }
         return p
     }
 

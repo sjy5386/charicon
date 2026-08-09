@@ -20,6 +20,7 @@ import SlackStatusBadge from './slack/SlackStatusBadge.tsx'
 import {useSlackExtension} from './slack/useSlackExtension.ts'
 import {
     applyLocationToState,
+    defaultCatalogState,
     defaultGeneratorState,
     pathForRoute,
     searchStringForState,
@@ -129,6 +130,9 @@ function AppLayout() {
             if (prev.route === 'converter') {
                 return {...prev, converterText: ''}
             }
+            if (prev.route === 'catalog') {
+                return {...prev, ...defaultCatalogState()}
+            }
             return {...prev, ...defaultGeneratorState()}
         })
     }
@@ -225,10 +229,14 @@ function ConverterPage() {
 }
 
 function CatalogPage() {
-    const {slack, openGeneratorWithCharacter} = useOutletApp()
+    const {state, setField, slack, openGeneratorWithCharacter} = useOutletApp()
     return (
         <HangulEmojiCatalog
             slack={slack}
+            filter={state.catalogFilter}
+            setFilter={(v) => setField('catalogFilter')(v)}
+            query={state.catalogQuery}
+            setQuery={(v) => setField('catalogQuery')(v)}
             onSelectCharacter={openGeneratorWithCharacter}
         />
     )
