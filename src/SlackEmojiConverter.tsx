@@ -3,6 +3,7 @@ import {useEffect, useMemo, useRef, useState} from 'react'
 import emojiRegex from 'emoji-regex'
 import {
     hangulToSlackEmoji,
+    PUNCTUATION_SLACK_EMOJI,
     resolveHangulWorkspaceEmoji,
     setFaviconFromCanvas,
     setFaviconFromDataUrl,
@@ -37,8 +38,12 @@ const isHangul = (ch: string) => {
 /** Complete hangul syllables only (custom emoji source). Jamo like ㅇ do not count. */
 const HANGUL_SYLLABLE_RE = /[\uAC00-\uD7A3]/gu
 
+/** `?` / `!` convert to Slack standard emoji, so they count as emoji-only. */
+const PUNCTUATION_SLACK_RE = /[?!]/gu
+
 /**
- * Slack-like jumbo when only complete hangul syllables / unicode emoji + whitespace.
+ * Slack-like jumbo when only complete hangul syllables / unicode emoji /
+ * `?` `!` + whitespace.
  * Bare jamo (ㅇ, ㅋ, …) is not emoji-only → inline.
  * IME mid-composition flicker is handled by freezing size while composing.
  */
@@ -49,12 +54,14 @@ const isEmojiOnlyMessage = (text: string): boolean => {
     const remainder = text
         .replace(emojiRe, '')
         .replace(HANGUL_SYLLABLE_RE, '')
+        .replace(PUNCTUATION_SLACK_RE, '')
         .replace(/\s+/gu, '')
 
     if (remainder.length > 0) return false
 
     HANGUL_SYLLABLE_RE.lastIndex = 0
-    return emojiRegex().test(text) || HANGUL_SYLLABLE_RE.test(text)
+    PUNCTUATION_SLACK_RE.lastIndex = 0
+    return emojiRegex().test(text) || HANGUL_SYLLABLE_RE.test(text) || PUNCTUATION_SLACK_RE.test(text)
 }
 
 /** First hangul in text (or placeholder), matching the preview order. */
@@ -190,6 +197,19 @@ const SlackEmojiConverter = ({
                     jumbo ? 'is-jumbo' : 'is-inline',
                 ].filter(Boolean).join(' ')}>
                     {Array.from(displayText).map((ch, i) => {
+                        const punct = PUNCTUATION_SLACK_EMOJI[ch]
+                        if (punct) {
+                            return (
+                                <span
+                                    key={i}
+                                    className="slack-preview-emoji is-real"
+                                    title={`:${punct.name}:`}
+                                >
+                                    {punct.glyph}
+                                </span>
+                            )
+                        }
+
                         if (!isHangul(ch)) {
                             return <React.Fragment key={i}>{ch}</React.Fragment>
                         }

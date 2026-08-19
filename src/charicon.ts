@@ -282,6 +282,15 @@ export const resolveHangulWorkspaceEmoji = (
     }
 }
 
+/**
+ * ASCII punctuation → Slack standard emoji.
+ * Converter preview uses `glyph`; copy text uses `:name:`.
+ */
+export const PUNCTUATION_SLACK_EMOJI: Record<string, {name: string; glyph: string}> = {
+    '?': {name: 'question', glyph: '❓'},
+    '!': {name: 'exclamation', glyph: '❗'},
+}
+
 export const hangulToSlackEmoji = (
     text: string,
     /** Hangul character → custom emoji name (without colons). Applies to every occurrence. */
@@ -302,7 +311,8 @@ export const hangulToSlackEmoji = (
             const {name} = resolveHangulWorkspaceEmoji(ch, emojiMap, override)
             result += `:${name}:`
         } else {
-            result += ch
+            const punct = PUNCTUATION_SLACK_EMOJI[ch]
+            result += punct ? `:${punct.name}:` : ch
         }
     }
     return result
